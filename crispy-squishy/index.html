@@ -266,7 +266,10 @@ summary { cursor: pointer; font-size: 14px; }
       shape: () => [oval(1, 0.84, 0, 0.1), oval(0.2, 0.17, 0, -0.74)],
       deco: () => {
         const d = [{ k: 'soft', x: 0, y: 0.5, r: 0.8, c: '190,170,140', a: 0.3 }];
-        for (let i = 0; i < 13; i++) { const a = -Math.PI + (i / 12) * Math.PI; d.push({ k: 'line', c: 'rgba(150,125,95,0.5)', w: 0.014, pts: [[Math.cos(a) * 0.08, -0.7 + Math.sin(a) * 0.04 + 0.04], [Math.cos(a + 0.35) * 0.34, -0.48 - Math.sin(a) * -0.02], [Math.cos(a + 0.6) * 0.62, -0.2 + Math.abs(Math.cos(a)) * 0.12]] }); }
+        for (let i = -6; i <= 6; i++) {                      // pleats fanning out from the knot on top
+          const th = i * 0.22, sx = Math.sin(th), cz = Math.cos(th);
+          d.push({ k: 'line', c: 'rgba(150,125,95,0.5)', w: 0.014, pts: [[sx * 0.07, -0.66], [sx * 0.33 + 0.04 * cz, -0.64 + cz * 0.22], [sx * 0.6 + 0.1 * cz, -0.6 + cz * 0.44]] });
+        }
         return d;
       } },
     pudding: { name: '布丁', price: 280, jelly: 0.7, shell: [45, 92, 66], paste: [46, 88, 76], goo: [26, 90, 36], crack: [30, 80, 34],
@@ -1053,7 +1056,7 @@ summary { cursor: pointer; font-size: 14px; }
 
     // a hard, glossy skin: dark towards the rim, a sharp key light, a small glint and a soft bounce light
     const rim = sctx.createRadialGradient(cx - R * 0.15, cy - R * 0.2, R * 0.3, cx, cy, R * 1.2);
-    rim.addColorStop(0, 'rgba(0,0,0,0)'); rim.addColorStop(1, 'rgba(0,0,0,0.42)');
+    rim.addColorStop(0, 'rgba(0,0,0,0)'); rim.addColorStop(1, `rgba(0,0,0,${0.42 - Math.max(0, fl.shell[2] - 60) * 0.0065})`);   // pale shells get a lighter edge so they stay white
     sctx.fillStyle = rim; sctx.fillRect(0, 0, W, H);
     const bounce = sctx.createRadialGradient(cx + R * 0.5, cy + R * 0.55, 0, cx + R * 0.5, cy + R * 0.55, R * 0.6);
     bounce.addColorStop(0, 'rgba(255,255,255,0.2)'); bounce.addColorStop(1, 'rgba(255,255,255,0)');
