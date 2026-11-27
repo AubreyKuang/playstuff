@@ -46,19 +46,19 @@ async function screenshots() {
     // 5. Coatings: a matcha-milk egg dipped three times.
     await s.open({toy: 'egg', coat: 'matcha'});
     await click('#dip'); await sleep(900); await click('#dip'); await sleep(900);
-    await click('[data-tab="coats"]'); await sleep(300); await top(150); await shot('coatings');
+    await click('[data-tab="coats"]'); await sleep(300); await top(200); await shot('coatings');
 
     // 6. The shelf: one sold, one waiting for a customer.
-    await s.open({toy: 'popsicle', shelf: [{toy: 'pudding', coat: 'caramel', layers: 3, price: 125, inMs: -1000}, {toy: 'bao', coat: 'plain', layers: 2, price: 54, inMs: 47000}]});
-    await click('[data-tab="shelf"]'); await sleep(300); await top(150); await shot('shelf');
+    await s.open({toy: 'popsicle', slots: 3, shelf: [{toy: 'pudding', coat: 'caramel', layers: 3, price: 196, est: 169, tag: '爽快的客人，多给了', inMs: -1000}, {toy: 'bao', coat: 'plain', layers: 2, price: 60, inMs: 14 * 60000, tookMs: 20 * 60000}]});
+    await click('[data-tab="shelf"]'); await sleep(300); await top(200); await shot('shelf');
 
     // 7. Everything there is to collect.
     await s.open({toy: 'friedegg'});
-    await top(300); await shot('collection');
+    await top(345); await shot('collection');
 
     // 8. The daily stamp.
     await s.open({toy: 'chocobar'});
-    await click('[data-tab="sign"]'); await sleep(300); await top(150); await shot('sign-in');
+    await click('[data-tab="sign"]'); await sleep(300); await top(200); await shot('sign-in');
     if (s.errors.length) throw new Error('page errors: ' + s.errors.join('\n'));
   } finally { s.close(); }
 }

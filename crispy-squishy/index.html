@@ -73,20 +73,40 @@ canvas#stage:active { cursor: grabbing; }
 .tab[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent); font-weight: 600; }
 .tab .pip { position: absolute; top: 6px; margin-left: 2px; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
-.card { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 6px 8px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel); cursor: pointer; min-width: 0; text-align: center; }
+.card { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px 4px 8px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel); cursor: pointer; min-width: 0; text-align: center; }
 .card.on { border-color: var(--fg); box-shadow: inset 0 0 0 1px var(--fg); }
 .card.locked { background: none; border-style: dashed; }
 .card.poor .cost { color: var(--muted); }
-.swatch { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line); }
+.thumb { width: 72px; height: 72px; object-fit: contain; display: block; flex: none; }
+.card.locked .thumb { filter: grayscale(0.9); opacity: 0.5; }
+.card .name { font-weight: 600; }
+.badge { position: absolute; top: 6px; right: 6px; font-size: 10px; line-height: 1.5; padding: 0 6px; border-radius: 999px; background: var(--accent); color: var(--accent-fg); }
 .card .name { font-size: 13px; line-height: 1.25; }
 .card .sub { font-size: 12px; color: var(--muted); display: inline-flex; align-items: center; gap: 4px; font-variant-numeric: tabular-nums; }
 .card .sub .bean { width: 11px; height: 11px; box-shadow: inset 0 -1px 0 var(--bean-edge); }
 .card .cost { color: var(--fg); font-weight: 600; }
 .panel-note { color: var(--muted); font-size: 13px; margin: 0 0 8px; }
-.shelf { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.shelf { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
 .slot { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 108px; padding: 10px 6px; border-radius: 14px; border: 1px dashed var(--line); text-align: center; font-size: 13px; color: var(--muted); min-width: 0; }
 .slot.full { border-style: solid; background: var(--panel); color: var(--fg); }
 .slot .btn { font-size: 13px; padding: 6px 8px; max-width: 100%; }
+.slot.closed { opacity: 0.8; }
+.slot-head { display: flex; align-items: center; gap: 6px; align-self: stretch; text-align: left; min-width: 0; }
+.slot-head .thumb { width: 48px; height: 48px; }
+.slot-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.3; }
+.slot-text b { font-size: 14px; }
+.slot-text span { font-size: 12px; color: var(--muted); }
+.slot .track { align-self: stretch; }
+.slot .fill { background: var(--good); }
+.slot .wait { font-size: 12px; color: var(--muted); }
+.slot .mood { font-size: 12px; color: var(--good); font-weight: 600; }
+.btn .bean { display: inline-block; width: 12px; height: 12px; vertical-align: -1px; margin: 0 2px 0 1px; box-shadow: inset 0 -1px 0 var(--bean-edge); }
+.btn.poor { opacity: 0.55; }
+.trend { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; font-size: 13px; color: var(--muted); background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 7px 12px; }
+.trend b { color: var(--fg); font-weight: 600; }
+.trend .up { margin-left: auto; color: var(--good); font-weight: 600; }
+.est { position: absolute; right: 14px; top: 12px; pointer-events: none; font-size: 13px; color: var(--muted); display: inline-flex; align-items: center; gap: 3px; font-variant-numeric: tabular-nums; }
+.est .bean { width: 12px; height: 12px; box-shadow: inset 0 -1px 0 var(--bean-edge); }
 .days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 10px; }
 .day { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 2px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; min-width: 0; }
 .day b { color: var(--fg); font-size: 13px; }
@@ -124,9 +144,12 @@ summary { cursor: pointer; font-size: 14px; }
     </div>
   </header>
 
+  <div class="trend" id="trend"></div>
+
   <div class="stage-box">
     <canvas id="stage" aria-label="工作台上的一颗脆皮捏捏，按住它可以捏爆外壳，挤出内馅"></canvas>
     <div class="tag" id="tag"></div>
+    <div class="est" id="est"></div>
     <div class="hint" id="hint">按住它，用力捏爆</div>
   </div>
 
@@ -137,7 +160,7 @@ summary { cursor: pointer; font-size: 14px; }
   </div>
 
   <div class="meter">
-    <div class="meter-label"><span>完整脆皮 <b id="left">100%</b></span><span>碎片 <b id="flakes">0</b> · 爆浆 <b id="bursts">0</b> · 捏完 <b id="cleared">0</b> 颗</span></div>
+    <div class="meter-label"><span>完整脆皮 <b id="left">100%</b></span><span>已捏完 <b id="cleared">0</b> 颗<span hidden><b id="flakes">0</b><b id="bursts">0</b></span></span></div>
     <div class="track"><div class="fill" id="bar"></div></div>
   </div>
 
@@ -153,11 +176,11 @@ summary { cursor: pointer; font-size: 14px; }
     <div class="grid" id="g-toys"></div>
   </section>
   <section id="p-coats" hidden>
-    <p class="panel-note">裹在外面的那层硬壳。口味越稀有，上架卖得越贵。</p>
+    <p class="panel-note">裹在外面的那层硬壳。口味越稀有卖得越贵，每多裹一层要花一点糖豆。</p>
     <div class="grid" id="g-coats"></div>
   </section>
   <section id="p-shelf" hidden>
-    <p class="panel-note">没捏过的捏捏可以上架。卖出去比自己捏赚得多，但要等客人来。</p>
+    <p class="panel-note">没捏过的捏捏可以上架。卖出去比自己捏赚得多，但要等客人来，最后卖多少也看客人。</p>
     <div class="shelf" id="g-shelf"></div>
   </section>
   <section id="p-sign" hidden>
@@ -368,13 +391,43 @@ summary { cursor: pointer; font-size: 14px; }
       ]) },
   };
   const TOY_KEYS = Object.keys(TOYS), COAT_KEYS = Object.keys(COATS);
+  // How each food breaks and what comes out of it. This picks its sounds, crumbs, sparkles and splashes.
+  Object.entries({ egg: ['egg', 'runny'], block: ['choco', 'cream'], berry: ['wax', 'juice'], toast: ['crust', 'cream'], strawberry: ['wax', 'juice'],
+    mochi: ['soft', 'paste'], popsicle: ['choco', 'cream'], mango: ['wax', 'juice'], bao: ['soft', 'runny'], pudding: ['candy', 'runny'],
+    friedegg: ['crust', 'runny'], chocobar: ['choco', 'runny'], soda: ['ice', 'fizz'], onigiri: ['soft', 'paste'], yolkpastry: ['crust', 'paste'],
+    heart: ['choco', 'cream'], star: ['candy', 'juice'], cat: ['soft', 'cream'], bear: ['crust', 'runny'] })
+    .forEach(([k, [shellKind, fillKind]]) => { TOYS[k].shellKind = shellKind; TOYS[k].fillKind = fillKind; });
+  const COAT_KIND = { milk: 'choco', choco: 'choco', matcha: 'choco', caramel: 'candy', berrymilk: 'choco' };   // a dipped coating breaks like what it is made of
+  // Shell materials. f/q/len shape the crack sound; ping adds a glassy ring; dust says how much comes off and how it falls.
+  const SHELL_FX = {
+    wax:   { f: [2000, 5800], q: 1.4, len: [0.025, 0.065], gain: 1,    buzz: 6,  light: 38, dust: { n: 1,   s: [0.8, 2.6], g: 0.12 } },
+    egg:   { f: [3600, 7600], q: 2.4, len: [0.010, 0.030], gain: 1.1,  buzz: 4,  light: 30, dust: { n: 1.6, s: [0.6, 1.6], g: 0.14 } },
+    choco: { f: [650, 2100],  q: 1.8, len: [0.05, 0.11],   gain: 1.3,  buzz: 14, light: 8,  dust: { n: 0.7, s: [1.6, 3.6], g: 0.22 } },
+    candy: { f: [3000, 6500], q: 1.6, len: [0.02, 0.05],   gain: 0.85, buzz: 6,  light: 38, ping: [2400, 5200], pingP: 0.4, spark: 0.8, dust: { n: 0.8, s: [0.8, 2], g: 0.12 } },
+    crust: { f: [1100, 3400], q: 0.8, len: [0.04, 0.09],   gain: 1.1,  buzz: 9,  light: 10, grains: true, dust: { n: 3, s: [0.8, 2.4], g: 0.2 } },
+    ice:   { f: [4200, 8500], q: 2.0, len: [0.015, 0.04],  gain: 1,    buzz: 5,  light: 30, ping: [3600, 7000], pingP: 0.5, spark: 0.6, dust: { n: 1, s: [0.8, 2], g: 0.1 } },
+    soft:  { f: [420, 1300],  q: 0.7, len: [0.05, 0.11],   gain: 0.75, buzz: 3,  light: 70, low: true, dust: { n: 2.4, s: [2.5, 6], g: -0.015, puff: true } },
+  };
+  // Fillings: how many drops burst out, how big, how fast, and how quickly they run down.
+  const FILL_FX = {
+    cream: { n: 1,   r: 1,    sp: 1,    g: 0.11 },
+    juice: { n: 2.2, r: 0.5,  sp: 1.7,  g: 0.17 },
+    runny: { n: 0.8, r: 1.25, sp: 0.75, g: 0.2 },
+    paste: { n: 0.6, r: 1.1,  sp: 0.45, g: 0.035 },
+    fizz:  { n: 1,   r: 0.9,  sp: 1.2,  g: 0.14 },
+  };
+  // Unlock prices climb steeply: the first new food takes a few minutes, the last ones are a long-term goal.
+  [0, 0, 0, 80, 140, 220, 320, 440, 580, 740, 920, 1120, 1350, 1600, 1900, 2200, 2600, 3000, 3500].forEach((price, i) => { TOYS[TOY_KEYS[i]].price = price; });
+  Object.entries({ plain: [0, 1], milk: [0, 1.15], choco: [150, 1.3], matcha: [400, 1.5], caramel: [900, 1.75], berrymilk: [1800, 2] })
+    .forEach(([k, [price, mult]]) => { COATS[k].price = price; COATS[k].mult = mult; });
 
   // ---------- the shop ----------
-  const SIGN = [30, 40, 50, 60, 80, 100, 200];           // sugar beans for day 1..7 of a streak
-  const LAYER_MULT = [1, 1.5, 2];                        // each extra dip makes the toy worth more
-  const SHELF_SLOTS = 3;
-  const SAVE_KEY = 'crispy-shop-v1';
-  const fresh = () => ({ coins: 30, toys: ['egg', 'block', 'berry'], coats: ['plain', 'milk'], shelf: [], sign: { last: '', streak: 0 }, ads: { day: '', free: 0 }, toy: 'block', coat: 'plain', made: 0 });
+  const SIGN = [40, 50, 60, 80, 100, 120, 300];           // sugar beans for day 1..7 of a streak
+  const LAYER_MULT = [1, 1.5, 2.1];                      // each extra dip makes the toy worth more...
+  const LAYER_TIME = [1, 1.25, 1.5];                     // ...and a pricier toy waits longer for its customer
+  const MAX_SLOTS = 4, SLOT_PRICE = { 2: 300, 3: 1500 };   // the shelf starts with two places; the third and fourth are bought
+  const SAVE_KEY = 'crispy-shop-v2';
+  const fresh = () => ({ coins: 20, toys: ['egg', 'block', 'berry'], coats: ['plain', 'milk'], shelf: [], slots: 2, sign: { last: '', streak: 0 }, ads: { day: '', free: 0 }, toy: 'block', coat: 'plain', made: 0 });
   let S = fresh();
   // Inside TapTap the save lives in the host's storage (the global `tap`), which is what survives there;
   // in a plain browser it lives in localStorage. Both are written, and the host's copy wins when reading.
@@ -388,6 +441,7 @@ summary { cursor: pointer; font-size: 14px; }
       S.toys = (Array.isArray(S.toys) ? S.toys : d.toys).filter(k => TOYS[k]); S.coats = (Array.isArray(S.coats) ? S.coats : d.coats).filter(k => COATS[k]);
       S.shelf = (Array.isArray(S.shelf) ? S.shelf : []).filter(it => it && TOYS[it.toy] && COATS[it.coat]);
       S.coins = Math.max(0, Math.floor(+S.coins || 0));
+      S.slots = Math.max(2, Math.min(MAX_SLOTS, Math.floor(+S.slots || 2)));
       if (!TOYS[S.toy]) S.toy = 'block';
       if (!COATS[S.coat]) S.coat = 'plain';
       return true;
@@ -402,12 +456,31 @@ summary { cursor: pointer; font-size: 14px; }
     try { const h = hostStore(); if (h) h.setStorageSync(SAVE_KEY, text); } catch (_) {}
     try { localStorage.setItem(SAVE_KEY, text); } catch (_) {}
   };
-  const priceOf = (toy, coat, layers) => Math.round((12 + TOY_KEYS.indexOf(toy) * 3) * COATS[coat].mult * LAYER_MULT[layers - 1]);
-  const sellMs = (toy, layers) => (18 + TOY_KEYS.indexOf(toy) * 2 + (layers - 1) * 8) * 1000;
+  const dayKey = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  // Every day one food and one coating are in fashion and fetch 30% more. The pick follows the date.
+  function trend() {
+    let h = 0;
+    for (const ch of dayKey(new Date())) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    const dipped = COAT_KEYS.filter(k => k !== 'plain');
+    return { toy: TOY_KEYS[h % TOY_KEYS.length], coat: dipped[(h >>> 8) % dipped.length] };
+  }
+  const trendMult = (toy, coat) => { const t = trend(); return (toy === t.toy ? 1.3 : 1) * (coat === t.coat ? 1.3 : 1); };
+  const baseValue = (toy, coat) => (10 + TOY_KEYS.indexOf(toy) * 4) * COATS[coat].mult;
+  const priceOf = (toy, coat, layers) => Math.round(baseValue(toy, coat) * LAYER_MULT[layers - 1] * trendMult(toy, coat));
+  const dipCost = (toy, coat, toLayer) => Math.max(1, Math.round(baseValue(toy, coat) * (toLayer === 2 ? 0.2 : 0.3)));   // coating is not free
+  // A customer takes minutes, not seconds: about 1.5 minutes for an egg up to about 40 for a triple-dipped bear.
+  const sellMs = (toy, layers) => (1.5 + TOY_KEYS.indexOf(toy) * 1.5) * LAYER_TIME[layers - 1] * rnd(0.85, 1.15) * 60000;
+  // Who walks in decides the final price: most pay about the estimate, some haggle, a few are generous.
+  const MOODS = [{ p: 0.60, lo: 0.92, hi: 1.08, tag: '正常成交' }, { p: 0.22, lo: 1.15, hi: 1.35, tag: '爽快的客人，多给了' }, { p: 0.12, lo: 0.72, hi: 0.88, tag: '被砍价了' }, { p: 0.06, lo: 1.7, hi: 2.0, tag: '遇到大方的客人' }];
+  function rollMood() {
+    let r = Math.random();
+    for (const m of MOODS) if ((r -= m.p) < 0) return { k: rnd(m.lo, m.hi), tag: m.tag };
+    return { k: 1, tag: MOODS[0].tag };
+  }
 
   // the toy on the workbench right now
-  const cur = { layers: 1, touched: false, pieces: 0, price: 0, tips: 0 };
-  let look = { shell: [0, 0, 50], paste: [0, 0, 80], goo: [0, 0, 60], crack: [0, 0, 90], jelly: 0, fizz: false, shellAlpha: 1 };
+  const cur = { layers: 1, touched: false, pieces: 0, price: 0, tipTotal: 0, tipPaid: 0 };
+  let look = { shell: [0, 0, 50], paste: [0, 0, 80], goo: [0, 0, 60], crack: [0, 0, 90], jelly: 0, fizz: false, shellAlpha: 1, shellKind: 'wax', fillKind: 'cream' };
 
   const P = { brittle: 6, soft: 5, rebound: 1, ooze: 6, finger: 5 };
   const K = 12;                      // rings in the mesh
@@ -417,7 +490,7 @@ summary { cursor: pointer; font-size: 14px; }
   let decals = [], innerDecals = [];
   let loose = [], compsDirty = false;   // shell pieces that have cracked free but not come away yet
   const fingers = new Map();
-  let shards = [], stuck = [], goo = [], blobs = [], dimples = [], dust = [], bubbles = [], pops = [], floats = [];
+  let shards = [], stuck = [], goo = [], blobs = [], dimples = [], dust = [], sparks = [], bubbles = [], pops = [], floats = [];
   let lastBurst = 0;
   let coat = 1, pressure = 1, shellCount = 0, flakedTotal = 0, burstTotal = 0, cleared = 0, doneFlag = false, touched = false;
   let soundOn = true;
@@ -463,6 +536,7 @@ summary { cursor: pointer; font-size: 14px; }
     look = {
       shell: dipped ? coating.shell : toy.shell, crack: dipped ? coating.crack : toy.crack,
       paste: toy.paste, goo: toy.goo, jelly: toy.jelly || 0, fizz: !!toy.fizz, shellAlpha: dipped ? 1 : (toy.shellAlpha || 1),
+      shellKind: dipped ? COAT_KIND[S.coat] : toy.shellKind, fillKind: toy.fillKind,
     };
     // sample the silhouette around the centre, round off sharp corners, and keep deep notches shallow
     const nb = 6 * K;
@@ -595,7 +669,7 @@ summary { cursor: pointer; font-size: 14px; }
       e.seam = e.t.length === 2 && tris[e.t[0]].plate !== tris[e.t[1]].plate;
       e.thr = edgeThr(e);
     }
-    shards = []; stuck = []; goo = []; blobs = []; dimples = []; dust = []; pops = [];
+    shards = []; stuck = []; goo = []; blobs = []; dimples = []; dust = []; sparks = []; pops = [];
     loose = []; compsDirty = false; pressure = 1;
     shellCount = tris.length; doneFlag = false;
     $('recoat').classList.remove('ready');
@@ -701,7 +775,7 @@ summary { cursor: pointer; font-size: 14px; }
 
     // runny filling slides down and drips off
     for (const g of goo) {
-      g.vx *= 0.9; g.vy = g.vy * 0.92 + 0.11; g.x += g.vx; g.y += g.vy;
+      g.vx *= 0.9; g.vy = g.vy * 0.92 + g.g; g.x += g.vx; g.y += g.vy;
       for (const f of fs) {
         const dx = g.x - f.x, dy = g.y - f.y, d = Math.hypot(dx, dy) || 1;
         if (d < f.r) { g.x += dx / d * (f.r - d) * 0.6; g.y += dy / d * (f.r - d) * 0.6; }
@@ -751,7 +825,7 @@ summary { cursor: pointer; font-size: 14px; }
           const o = edges[ei];
           if (!o.cracked) o.thr *= o.seam ? 0.55 : 0.9;
         }
-        for (let k = 0; k < 2; k++) if (Math.random() < 0.6) dust.push({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, vx: (Math.random() - 0.5) * 2.6, vy: -Math.random() * 2, life: 1, s: 0.8 + Math.random() * 1.8 });
+        crumbs((a.x + b.x) / 2, (a.y + b.y) / 2);
       }
     }
     // the last few crumbs let go on their own, so a toy can always be finished
@@ -773,12 +847,26 @@ summary { cursor: pointer; font-size: 14px; }
       for (const f of fs) if (Math.hypot(mx - f.x, my - f.y) < f.r * 1.8) near = f;
       if (maxDev > 0.3 || (near && Math.random() < 0.22) || (crumble && Math.random() < 0.25)) { detach(piece, mx, my, near); flakes++; }
     }
-    if (cracks) { for (let i = 0; i < Math.min(cracks, 3); i++) crackle(0.5 + cracks / 10); buzz(6); }
+    if (cracks) { for (let i = 0; i < Math.min(cracks, 3); i++) crackle(0.5 + cracks / 10); buzz(SHELL_FX[look.shellKind].buzz); }
     if (flakes) { for (let i = 0; i < Math.min(flakes, 2); i++) snap(); }
-    if (shellCount === 0 && !doneFlag) {                   // squeezed clean: part of its shelf price, paid at once
+    if (shellCount === 0 && !doneFlag) {                   // squeezed clean: the rest of the tip
       doneFlag = true; cleared++; S.made++; $('recoat').classList.add('ready');
-      earn(Math.round(cur.price * 0.4), cx, cy - R * 0.4);
+      earn(Math.max(0, cur.tipTotal - cur.tipPaid), cx, cy - R * 0.4);
     }
+  }
+
+  // What flies off where the shell cracks: fine eggshell grit, chunky chocolate bits, a rain of crumbs from
+  // a crust, a slow puff of flour from soft dough, and a glint where sugar or ice splits.
+  function crumbs(x, y) {
+    const fx = SHELL_FX[look.shellKind], du = fx.dust;
+    for (let n = du.n * 1.2; n > 0; n--) {
+      if (Math.random() > Math.min(1, n)) continue;
+      dust.push(du.puff
+        ? { x, y, vx: (Math.random() - 0.5) * 1.2, vy: -Math.random() * 0.8, life: 1, s: rnd(du.s[0], du.s[1]), g: du.g, fade: 0.022, a: 0.45 }
+        : { x, y, vx: (Math.random() - 0.5) * 2.6, vy: -Math.random() * 2, life: 1, s: rnd(du.s[0], du.s[1]), g: du.g, fade: 0.04, a: 1 });
+    }
+    if (dust.length > 400) dust.splice(0, dust.length - 400);
+    if (fx.spark && Math.random() < fx.spark) sparks.push({ x, y, life: 1, s: rnd(4, 10), rot: rnd(0, 1.5) });
   }
 
   // shell triangles still joined through uncracked edges form one piece; small pieces are free to come away
@@ -843,10 +931,11 @@ summary { cursor: pointer; font-size: 14px; }
     const s = pressure * (0.4 + 0.1 * P.ooze);
     pressure *= 0.8; burstTotal++;
     const dir = Math.atan2(y - cy, x - cx);
-    const n = Math.round(2 + 4 * s);
+    const ff = FILL_FX[look.fillKind];
+    const n = Math.max(1, Math.round((2 + 4 * s) * ff.n));
     for (let i = 0; i < n; i++) {
       const a = dir + (Math.random() - 0.5) * 1.8, sp = 1.5 + Math.random() * 5 * s;
-      goo.push({ x: x + (Math.random() - 0.5) * 10, y: y + (Math.random() - 0.5) * 10, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 1, r: 6 + Math.random() * 10 * (0.5 + s) });
+      goo.push({ x: x + (Math.random() - 0.5) * 10, y: y + (Math.random() - 0.5) * 10, vx: Math.cos(a) * sp * ff.sp, vy: Math.sin(a) * sp * ff.sp - 1, r: (6 + Math.random() * 10 * (0.5 + s)) * ff.r, g: ff.g });
     }
     if (goo.length > 140) goo.splice(0, goo.length - 140);
     for (const t of tris) {
@@ -859,9 +948,10 @@ summary { cursor: pointer; font-size: 14px; }
       blobs.push({ v, ox: (Math.random() - 0.5) * 8, oy: (Math.random() - 0.5) * 8, r: 9 + Math.random() * 12 * s });
     }
     if (blobs.length > 40) blobs.splice(0, blobs.length - 40);
-    if (look.fizz) { fizzPop(x, y, s); hiss(); } else squelch(s);
+    if (look.fizz) fizzPop(x, y, s);
+    burstSound(s);
     buzz(18);
-    if (cur.tips > 0) { cur.tips--; earn(1, x, y); }       // a few tips for the show, capped per toy
+    if (cur.tipPaid < Math.floor(cur.tipTotal * 0.4)) { cur.tipPaid++; earn(1, x, y); }   // a little of the tip comes with each burst
   }
 
   // ---------- sound & haptics ----------
@@ -890,10 +980,41 @@ summary { cursor: pointer; font-size: 14px; }
     src.connect(f); f.connect(g); g.connect(master);
     src.start(t, Math.random() * 0.15, len + 0.02);
   }
-  const crackle = k => noiseBurst(2000 + Math.random() * 3800, 1.4, Math.min(0.5, 0.22 * k), 0.025 + Math.random() * 0.04, 0.8 + Math.random() * 1.2);
-  const snap = () => noiseBurst(800 + Math.random() * 900, 2.2, 0.32, 0.06 + Math.random() * 0.04, 0.6 + Math.random() * 0.5);
-  const squelch = s => { noiseBurst(380 + Math.random() * 160, 0.9, Math.min(0.6, 0.3 + 0.3 * s), 0.2, 0.3, 'lowpass'); noiseBurst(900, 1.2, 0.18, 0.09, 0.5); };
-  const hiss = () => { noiseBurst(6200, 0.7, 0.3, 0.33, 1.5, 'highpass'); noiseBurst(3000, 1, 0.18, 0.25, 1); };
+  // a short sine tone, optionally sliding in pitch: the ring of sugar and ice, the glug of something runny
+  function tone(freq, peak, len, endFreq) {
+    if (!soundOn || !actx || actx.state !== 'running') return;
+    const t = actx.currentTime + Math.random() * 0.03, o = actx.createOscillator(), g = actx.createGain();
+    o.type = 'sine'; o.frequency.setValueAtTime(freq, t);
+    if (endFreq) o.frequency.exponentialRampToValueAtTime(endFreq, t + len);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(peak, t + 0.004);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+    o.connect(g); g.connect(master);
+    o.start(t); o.stop(t + len + 0.02);
+  }
+  // A crack sounds like the shell it runs through: eggshell ticks, chocolate snaps low, sugar and ice ring,
+  // a baked crust crunches in grains, soft dough only thuds.
+  function crackle(k) {
+    const fx = SHELL_FX[look.shellKind], kind = fx.low ? 'lowpass' : undefined;
+    noiseBurst(rnd(fx.f[0], fx.f[1]), fx.q, Math.min(0.55, 0.22 * k * fx.gain), rnd(fx.len[0], fx.len[1]), 0.8 + Math.random() * 1.2, kind);
+    if (fx.grains) noiseBurst(rnd(fx.f[0], fx.f[1]) * 1.3, fx.q, Math.min(0.4, 0.14 * k), rnd(fx.len[0], fx.len[1]) * 0.6, 1 + Math.random(), kind);
+    if (fx.ping && Math.random() < fx.pingP) tone(rnd(fx.ping[0], fx.ping[1]), 0.07, 0.1 + Math.random() * 0.12);
+  }
+  // a piece coming away: the same material, lower and fuller
+  function snap() {
+    const fx = SHELL_FX[look.shellKind];
+    noiseBurst(rnd(fx.f[0], fx.f[1]) * 0.42, fx.q + 0.6, Math.min(0.5, 0.3 * fx.gain), fx.len[1] + 0.03, 0.6 + Math.random() * 0.5, fx.low ? 'lowpass' : undefined);
+    if (fx.ping && Math.random() < 0.5) tone(rnd(fx.ping[0], fx.ping[1]) * 0.6, 0.06, 0.16);
+  }
+  // what comes out has its own voice: cream squelches, juice splashes, yolk and soup glug, thick paste thuds, soda hisses
+  function burstSound(s) {
+    const kind = look.fillKind, loud = Math.min(0.6, 0.3 + 0.3 * s);
+    if (kind === 'fizz') { noiseBurst(6200, 0.7, 0.3, 0.33, 1.5, 'highpass'); noiseBurst(3000, 1, 0.18, 0.25, 1); }
+    else if (kind === 'juice') { noiseBurst(1700 + Math.random() * 1000, 1.1, loud * 0.85, 0.11, 0.9); noiseBurst(520, 0.9, 0.2, 0.14, 0.35, 'lowpass'); }
+    else if (kind === 'runny') { tone(240, 0.22, 0.2, 105); noiseBurst(420, 0.9, loud * 0.8, 0.22, 0.28, 'lowpass'); }
+    else if (kind === 'paste') noiseBurst(250, 0.8, loud * 0.9, 0.26, 0.22, 'lowpass');
+    else { noiseBurst(380 + Math.random() * 160, 0.9, loud, 0.2, 0.3, 'lowpass'); noiseBurst(900, 1.2, 0.18, 0.09, 0.5); }
+  }
   function buzz(ms) { try { if (navigator.vibrate) navigator.vibrate(ms); } catch (_) {} }
 
   // ---------- drawing ----------
@@ -1050,8 +1171,18 @@ summary { cursor: pointer; font-size: 14px; }
       drawShard(fl, s);
       ctx.restore();
     }
-    ctx.fillStyle = hsl(fl.shell, 38);
-    for (const d of dust) { ctx.globalAlpha = Math.max(0, d.life); ctx.beginPath(); ctx.arc(d.x, d.y, d.s, 0, Math.PI * 2); ctx.fill(); }
+    ctx.fillStyle = hsl(fl.shell, SHELL_FX[fl.shellKind].light);
+    for (const d of dust) { ctx.globalAlpha = Math.max(0, d.life) * d.a; ctx.beginPath(); ctx.arc(d.x, d.y, d.s, 0, Math.PI * 2); ctx.fill(); }
+    ctx.globalAlpha = 1;
+    // glints where sugar or ice split: a small four-point star that flashes and is gone
+    ctx.strokeStyle = '#fff'; ctx.lineCap = 'round';
+    for (const k of sparks) {
+      const r = k.s * (0.4 + 0.6 * k.life);
+      ctx.globalAlpha = Math.max(0, k.life); ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      for (let i = 0; i < 2; i++) { const a = k.rot + i * Math.PI / 2; ctx.moveTo(k.x - Math.cos(a) * r, k.y - Math.sin(a) * r); ctx.lineTo(k.x + Math.cos(a) * r, k.y + Math.sin(a) * r); }
+      ctx.stroke();
+    }
     ctx.globalAlpha = 1;
 
     // sugar beans earned, drifting up
@@ -1154,6 +1285,7 @@ summary { cursor: pointer; font-size: 14px; }
   }
 
   // ---------- loop ----------
+  let thumbsDone = false;
   let last = 0, acc = 0, shownLeft = -1, shownFlakes = -1, shownBursts = -1, shownCleared = -1;
   function frame(now) {
     requestAnimationFrame(frame);
@@ -1163,7 +1295,9 @@ summary { cursor: pointer; font-size: 14px; }
     while (acc >= 16.6 && steps < 3) {
       physics(now); fracture();
       for (const s of shards) { s.vy += 0.35; s.x += s.vx; s.y += s.vy; s.rot += s.vr; s.life -= 0.02; }
-      for (const d of dust) { d.vy += 0.12; d.x += d.vx; d.y += d.vy; d.life -= 0.04; }
+      for (const d of dust) { d.vy += d.g; d.x += d.vx; d.y += d.vy; d.life -= d.fade; }
+      for (const k of sparks) k.life -= 0.07;
+      sparks = sparks.filter(k => k.life > 0);
       shards = shards.filter(s => s.life > 0 && s.y < H + 40);
       dust = dust.filter(d => d.life > 0);
       // bubbles in the drink rise, faster while it is being squeezed
@@ -1195,6 +1329,7 @@ summary { cursor: pointer; font-size: 14px; }
     cv.width = shellCv.width = Math.round(W * DPR);
     cv.height = shellCv.height = Math.round(H * DPR);
     build();
+    if (!thumbsDone) { thumbsDone = true; makeThumbs(); renderCards(); renderShelf(); }
   }
 
   // a fizzy drink bursts into a spray of bubbles instead of a squelch of filling
@@ -1208,7 +1343,8 @@ summary { cursor: pointer; font-size: 14px; }
   // Every ad is opened by the player and pays out only if it was watched to the end. Inside TapTap this
   // uses the platform's rewarded video; anywhere else (this web build) a clearly marked stand-in plays.
   const AD_UNIT_ID = '';             // paste the ad unit id from 开发者中心 → 小游戏广告 once ads are opened
-  const FREE_AD_CAP = 5, FREE_AD_BEANS = 20;
+  const FREE_AD_CAP = 5;
+  const freeAdBeans = () => 40 + 20 * Math.max(0, S.toys.length - 3);   // worth more as the shop grows, so it stays worth a tap
   const Ads = (() => {
     let ad = null, pending = null;
     const real = () => !!AD_UNIT_ID && typeof tap !== 'undefined' && tap && typeof tap.createRewardedVideoAd === 'function';
@@ -1259,24 +1395,42 @@ summary { cursor: pointer; font-size: 14px; }
   }
 
   // ---------- the shop: beans, dipping, shelf, unlocks, daily stamp ----------
+  const setCoins = () => { $('coins').textContent = S.coins; };
+  const beanIcon = () => { const b = document.createElement('span'); b.className = 'bean'; return b; };
+  function refreshAffordable() {
+    for (const b of document.querySelectorAll('.card.locked, .slot .open')) b.classList.toggle('poor', S.coins < +b.dataset.price);
+    if (pts.length) updateActions();
+  }
   function earn(n, x, y) {
     if (!n) return;
-    S.coins += n; save();
-    $('coins').textContent = S.coins;
+    S.coins += n; save(); setCoins();
     if (x !== undefined) floats.push({ x: x + rnd(-8, 8), y, text: '+' + n, life: 1 });
-    renderCards();
+    refreshAffordable();
   }
+  function spend(n) {
+    if (S.coins < n) return false;
+    S.coins -= n; save(); setCoins(); refreshAffordable();
+    return true;
+  }
+  const fmtWait = ms => ms >= 90000 ? `${Math.ceil(ms / 60000)} 分钟` : `${Math.max(1, Math.ceil(ms / 1000))} 秒`;
 
   function updateActions() {
     cur.price = priceOf(S.toy, S.coat, cur.layers);
-    if (!cur.touched) cur.tips = Math.round(cur.price * 0.25);   // squeezing it yourself pays about two thirds of selling it
-    const dip = $('dip'), sell = $('sell');
-    dip.textContent = cur.layers >= 3 ? '已裹满 3 层' : `再裹一层 ${cur.layers}/3`;
-    dip.disabled = cur.touched || cur.layers >= 3;
-    const full = S.shelf.length >= SHELF_SLOTS;
-    sell.textContent = cur.touched ? '捏过不能卖' : (full ? '货架满了' : `上架卖 +${cur.price}`);
+    if (!cur.touched) { cur.tipTotal = Math.max(2, Math.round(cur.price * 0.15)); cur.tipPaid = 0; }   // squeezing it yourself pays a small tip, far less than selling
+    const dip = $('dip'), sell = $('sell'), again = $('recoat');
+    dip.textContent = '';
+    if (cur.layers >= 3) dip.append('已裹满 3 层');
+    else dip.append('再裹一层 ', beanIcon(), String(dipCost(S.toy, S.coat, cur.layers + 1)));
+    dip.disabled = cur.touched || cur.layers >= 3 || S.coins < dipCost(S.toy, S.coat, cur.layers + 1);
+    const full = S.shelf.length >= S.slots;
+    sell.textContent = cur.touched ? '捏过不能卖' : (full ? '货架满了' : '上架卖');
     sell.disabled = cur.touched || full;
-    $('tag').innerHTML = `<b>${TOYS[S.toy].name}</b> · ${COATS[S.coat].name}脆皮 · ${cur.layers} 层`;
+    sell.classList.toggle('primary', !sell.disabled); again.classList.toggle('primary', sell.disabled);
+    const tag = $('tag'), name = document.createElement('b');
+    name.textContent = TOYS[S.toy].name;
+    tag.textContent = ''; tag.append(name, ` · ${COATS[S.coat].name}脆皮 · ${cur.layers} 层`);
+    const est = $('est'); est.textContent = '';
+    est.append(cur.touched ? '试捏小费 ' : '估价 ', beanIcon(), String(cur.touched ? cur.tipTotal : cur.price));
   }
 
   // start a fresh toy of the chosen food and coating on the workbench
@@ -1284,6 +1438,7 @@ summary { cursor: pointer; font-size: 14px; }
 
   $('dip').addEventListener('click', () => {
     if (cur.touched || cur.layers >= 3) return;
+    if (!spend(dipCost(S.toy, S.coat, cur.layers + 1))) { toast('糖豆不够再裹一层'); return; }
     initAudio();
     cur.layers++;
     for (const e of edges) e.thr = edgeThr(e);
@@ -1292,73 +1447,107 @@ summary { cursor: pointer; font-size: 14px; }
     updateActions();
   });
   $('sell').addEventListener('click', () => {
-    if (cur.touched || S.shelf.length >= SHELF_SLOTS) return;
-    S.shelf.push({ toy: S.toy, coat: S.coat, layers: cur.layers, price: cur.price, readyAt: Date.now() + sellMs(S.toy, cur.layers) });
+    if (cur.touched || S.shelf.length >= S.slots) return;
+    // What it finally fetches depends on who walks in; the customer is decided now and revealed when it sells.
+    const mood = rollMood(), now = Date.now();
+    S.shelf.push({ toy: S.toy, coat: S.coat, layers: cur.layers, est: cur.price, price: Math.max(1, Math.round(cur.price * mood.k)), tag: mood.tag, listedAt: now, readyAt: now + sellMs(S.toy, cur.layers) });
+    toast(`上架了，估价 ${cur.price} 糖豆`);
     make(); renderShelf();
   });
   $('recoat').addEventListener('click', () => { initAudio(); make(); });
 
+  function thumb(kind, key) {
+    const src = THUMB[kind][key];
+    if (src) { const im = document.createElement('img'); im.className = 'thumb'; im.alt = ''; im.src = src; return im; }
+    const sw = document.createElement('span'); sw.className = 'thumb'; return sw;   // before the thumbnails are drawn
+  }
   function renderCards() {
-    const fill = (box, keys, table, owned, active, pick) => {
+    const hot = trend();
+    const fill = (box, keys, table, owned, active, kind, pick) => {
       box.textContent = '';
       for (const key of keys) {
         const item = table[key], has = owned.includes(key);
         const b = document.createElement('button');
-        b.type = 'button'; b.id = (table === TOYS ? 't-' : 'c-') + key;
+        b.type = 'button'; b.id = (kind === 'toy' ? 't-' : 'c-') + key; b.dataset.price = item.price;
         b.className = 'card' + (has ? '' : ' locked') + (key === active ? ' on' : '') + (!has && S.coins < item.price ? ' poor' : '');
-        const sw = document.createElement('span'); sw.className = 'swatch';
-        const a = item.shell ? hsl(item.shell) : 'var(--panel)', c = item.paste ? hsl(item.paste) : (item.shell ? hsl(item.shell, 12) : 'var(--line)');
-        sw.style.background = `linear-gradient(135deg, ${a} 0 52%, ${c} 52% 100%)`;
         const name = document.createElement('span'); name.className = 'name'; name.textContent = item.name;
         const sub = document.createElement('span'); sub.className = 'sub';
-        if (has) sub.textContent = key === active ? '使用中' : '已拥有';
-        else { const bean = document.createElement('span'); bean.className = 'bean'; const cost = document.createElement('span'); cost.className = 'cost'; cost.textContent = item.price; sub.append(bean, cost); }
-        b.append(sw, name, sub);
+        if (!has) { const cost = document.createElement('span'); cost.className = 'cost'; cost.textContent = item.price; sub.append(beanIcon(), cost); }
+        else if (kind === 'toy') sub.append('卖约 ', beanIcon(), String(priceOf(key, S.coat, 1)));
+        else sub.textContent = item.mult > 1 ? `卖价 ×${item.mult}` : '不加价';
+        b.append(thumb(kind, key), name, sub);
+        if (key === (kind === 'toy' ? hot.toy : hot.coat)) { const badge = document.createElement('span'); badge.className = 'badge'; badge.textContent = '流行'; b.appendChild(badge); }
         b.addEventListener('click', () => {
           if (!has) {
-            if (S.coins < item.price) { sub.textContent = `还差 ${item.price - S.coins}`; return; }
-            S.coins -= item.price; owned.push(key); $('coins').textContent = S.coins;
+            if (!spend(item.price)) { toast(`还差 ${item.price - S.coins} 糖豆`); return; }
+            owned.push(key); toast(`解锁了${item.name}`);
           }
           pick(key); initAudio(); make();
         });
         box.appendChild(b);
       }
     };
-    fill($('g-toys'), TOY_KEYS, TOYS, S.toys, S.toy, k => { S.toy = k; });
-    fill($('g-coats'), COAT_KEYS, COATS, S.coats, S.coat, k => { S.coat = k; });
+    fill($('g-toys'), TOY_KEYS, TOYS, S.toys, S.toy, 'toy', k => { S.toy = k; });
+    fill($('g-coats'), COAT_KEYS, COATS, S.coats, S.coat, 'coat', k => { S.coat = k; });
+  }
+  function renderTrend() {
+    const hot = trend(), box = $('trend'), a = document.createElement('b'), b = document.createElement('b'), up = document.createElement('span');
+    a.textContent = TOYS[hot.toy].name; b.textContent = COATS[hot.coat].name + '脆皮';
+    up.className = 'up'; up.textContent = '各 +30% 卖价';
+    box.textContent = ''; box.append('今日流行 ', a, ' 和 ', b, up);
   }
 
+  let shelfReady = -1;
   function renderShelf() {
     const box = $('g-shelf'), now = Date.now();
     box.textContent = '';
     let ready = 0;
-    for (let i = 0; i < SHELF_SLOTS; i++) {
+    for (let i = 0; i < MAX_SLOTS; i++) {
       const it = S.shelf[i], slot = document.createElement('div');
       slot.className = 'slot' + (it ? ' full' : '');
-      if (!it) slot.textContent = '空位';
+      if (i >= S.slots) {                               // a slot that still has to be bought
+        slot.classList.add('closed');
+        if (i === S.slots) {
+          const b = document.createElement('button'); b.type = 'button'; b.className = 'btn open' + (S.coins < SLOT_PRICE[i] ? ' poor' : ''); b.dataset.price = SLOT_PRICE[i];
+          b.append('加一格 ', beanIcon(), String(SLOT_PRICE[i]));
+          b.addEventListener('click', () => { if (!spend(SLOT_PRICE[i])) { toast(`还差 ${SLOT_PRICE[i] - S.coins} 糖豆`); return; } S.slots++; save(); toast('货架多了一格'); renderShelf(); updateActions(); });
+          slot.append('货位未开', b);
+        } else slot.textContent = '货位未开';
+      } else if (!it) slot.textContent = '空位';
       else {
-        const sw = document.createElement('span'); sw.className = 'swatch';
-        const dipped = it.coat !== 'plain';
-        sw.style.background = `linear-gradient(135deg, ${hsl(dipped ? COATS[it.coat].shell : TOYS[it.toy].shell)} 0 52%, ${hsl(TOYS[it.toy].paste)} 52% 100%)`;
-        const name = document.createElement('span'); name.textContent = `${COATS[it.coat].name}${TOYS[it.toy].name} · ${it.layers} 层`;
-        slot.append(sw, name);
-        const take = n => { const i = S.shelf.indexOf(it); if (i < 0) return; S.shelf.splice(i, 1); earn(n); renderShelf(); updateActions(); };
+        const head = document.createElement('div'); head.className = 'slot-head';
+        const text = document.createElement('div'), name = document.createElement('b'), meta = document.createElement('span');
+        name.textContent = TOYS[it.toy].name; meta.textContent = `${COATS[it.coat].name}脆皮 · ${it.layers} 层`;
+        text.className = 'slot-text'; text.append(name, meta);
+        head.append(thumb('toy', it.toy), text); slot.appendChild(head);
+        const take = n => { const k = S.shelf.indexOf(it); if (k < 0) return; S.shelf.splice(k, 1); earn(n); toast(`收到 ${n} 糖豆`); renderShelf(); updateActions(); };
         if (now >= it.readyAt) {
           ready++;
-          const b = document.createElement('button'); b.type = 'button'; b.className = 'btn primary'; b.textContent = `收钱 +${it.price}`;
+          const note = document.createElement('span'); note.className = 'mood'; note.textContent = it.tag || '卖出了';
+          const b = document.createElement('button'); b.type = 'button'; b.className = 'btn primary'; b.append('收钱 ', beanIcon(), String(it.price));
           b.addEventListener('click', () => take(it.price));
-          slot.append(b, adButton(`双倍 +${it.price * 2}`, () => watchAd(() => take(it.price * 2))));
+          slot.append(note, b, adButton(`双倍 ${it.price * 2}`, () => watchAd(() => take(it.price * 2))));
         } else {
-          const wait = document.createElement('span'); wait.textContent = `等客人 ${Math.ceil((it.readyAt - now) / 1000)} 秒`;
-          slot.append(wait, adButton('马上卖', () => watchAd(() => { it.readyAt = Date.now(); save(); renderShelf(); })));
+          const total = Math.max(1, it.readyAt - (it.listedAt || it.readyAt - 60000));
+          const track = document.createElement('div'), bar = document.createElement('div'), wait = document.createElement('span');
+          track.className = 'track'; bar.className = 'fill'; bar.style.width = Math.max(4, Math.min(100, (1 - (it.readyAt - now) / total) * 100)) + '%'; track.appendChild(bar);
+          wait.className = 'wait'; wait.textContent = `等客人，约 ${fmtWait(it.readyAt - now)} · 估价 ${it.est || it.price}`;
+          slot.append(track, wait, adButton('马上卖', () => watchAd(() => { it.readyAt = Date.now(); save(); renderShelf(); })));
         }
       }
       box.appendChild(slot);
     }
+    shelfReady = ready;
     $('pip-shelf').hidden = !ready;
   }
+  // Once a second: redraw the shelf only if it is on screen and no ad is covering it; otherwise just keep the tab's dot right.
+  setInterval(() => {
+    if (!$('adDemo').hidden) return;
+    const ready = S.shelf.filter(it => Date.now() >= it.readyAt).length;
+    if (!$('p-shelf').hidden) renderShelf();
+    else if (ready !== shelfReady) { if (ready > Math.max(0, shelfReady)) toast('货架上有捏捏卖出去了'); shelfReady = ready; $('pip-shelf').hidden = !ready; }
+  }, 1000);
 
-  const dayKey = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   function signState() {
     const today = dayKey(new Date()), y = new Date(); y.setDate(y.getDate() - 1);
     const done = S.sign.last === today;
@@ -1386,19 +1575,19 @@ summary { cursor: pointer; font-size: 14px; }
     const leftAds = FREE_AD_CAP - S.ads.free, fb = $('freeAd');
     fb.textContent = '';
     const tag = document.createElement('span'); tag.className = 'adtag'; tag.textContent = '广告';
-    fb.append(tag, leftAds > 0 ? `看广告领 ${FREE_AD_BEANS} 糖豆 · 今天还剩 ${leftAds} 次` : '今天的次数用完了，明天再来');
+    fb.append(tag, leftAds > 0 ? `看广告领 ${freeAdBeans()} 糖豆 · 今天还剩 ${leftAds} 次` : '今天的次数用完了，明天再来');
     fb.disabled = leftAds <= 0;
   }
-  $('freeAd').addEventListener('click', () => {
-    if (S.ads.free >= FREE_AD_CAP) return;
-    watchAd(() => { S.ads.free++; earn(FREE_AD_BEANS); renderSign(); });
-  });
   $('claim').addEventListener('click', () => {
     const st = signState();
     if (st.done) return;
     const reward = SIGN[st.got % 7];
     S.sign = { last: st.today, streak: st.streak + 1 };
-    earn(reward); renderSign();
+    earn(reward); toast(`签到领了 ${reward} 糖豆`); renderSign();
+  });
+  $('freeAd').addEventListener('click', () => {
+    if (S.ads.free >= FREE_AD_CAP) return;
+    watchAd(() => { const n = freeAdBeans(); S.ads.free++; earn(n); toast(`领到 ${n} 糖豆`); renderSign(); });
   });
 
   function showTab(name) {
@@ -1409,14 +1598,33 @@ summary { cursor: pointer; font-size: 14px; }
   }
   for (const t of document.querySelectorAll('.tab')) t.addEventListener('click', () => showTab(t.dataset.tab));
   $('signBtn').addEventListener('click', () => showTab('sign'));
-  setInterval(() => { if ($('adDemo').hidden && !$('p-shelf').hidden) renderShelf(); else if ($('adDemo').hidden) $('pip-shelf').hidden = !S.shelf.some(it => Date.now() >= it.readyAt); }, 1000);
 
   $('reset').addEventListener('click', () => {
     try { localStorage.removeItem(SAVE_KEY); } catch (_) {}
     try { const h = hostStore(); if (h) { if (typeof h.removeStorageSync === 'function') h.removeStorageSync(SAVE_KEY); else h.setStorageSync(SAVE_KEY, ''); } } catch (_) {}
-    S = fresh(); $('coins').textContent = S.coins;
+    S = fresh(); setCoins();
     make(); renderShelf(); renderSign();
   });
+
+  // Small pictures of every food and coating for the shop cards, drawn once by the game itself.
+  const THUMB = { toy: {}, coat: {} };
+  function makeThumbs() {
+    const keepToy = S.toy, keepCoat = S.coat;
+    const tc = document.createElement('canvas'); tc.width = tc.height = 144;
+    const t2 = tc.getContext('2d');
+    const snap = () => {
+      coat = 1; draw();
+      const side = R * 2.5 * DPR;
+      t2.clearRect(0, 0, 144, 144);
+      t2.drawImage(cv, (cx - R * 1.25) * DPR, (cy - R * 1.16) * DPR, side, side, 0, 0, 144, 144);
+      return tc.toDataURL('image/png');
+    };
+    S.coat = 'plain';
+    for (const k of TOY_KEYS) { S.toy = k; build(false); THUMB.toy[k] = snap(); }
+    S.toy = 'egg';
+    for (const k of COAT_KEYS) { S.coat = k; build(false); THUMB.coat[k] = snap(); }
+    S.toy = keepToy; S.coat = keepCoat; build(false);
+  }
 
   // ---------- input ----------
   function pos(ev) { const r = cv.getBoundingClientRect(); return { x: ev.clientX - r.left, y: ev.clientY - r.top }; }
@@ -1452,8 +1660,8 @@ summary { cursor: pointer; font-size: 14px; }
   soundOn = $('sound').checked;
 
   if (/[?&]dev\b/.test(location.search)) $('devRow').hidden = false;   // wiping the save is for development only
-  $('coins').textContent = S.coins;
-  renderCards(); renderShelf(); renderSign();
+  setCoins();
+  renderTrend(); renderCards(); renderShelf(); renderSign();
   if (window.ResizeObserver) new ResizeObserver(resize).observe(cv); else window.addEventListener('resize', resize);
   resize();
   requestAnimationFrame(frame);

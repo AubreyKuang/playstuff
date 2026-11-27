@@ -13,10 +13,10 @@ const COATS = ['plain', 'milk', 'choco', 'matcha', 'caramel', 'berrymilk'];
 
 // Runs before the game's own script on every load: a fixed random sequence, so pictures can be
 // reproduced, and a save with everything unlocked, built in the page so shelf timers are current.
-function preload({toy = 'strawberry', coat = 'plain', coins = 486, shelf = []} = {}) {
+function preload({toy = 'strawberry', coat = 'plain', coins = 486, shelf = [], slots = 3} = {}) {
   return `{let s=20261127;Math.random=()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296};}
-    try{localStorage.setItem('crispy-shop-v1',JSON.stringify({coins:${coins},toys:${JSON.stringify(TOYS)},coats:${JSON.stringify(COATS)},
-      shelf:${JSON.stringify(shelf)}.map(it=>({...it,readyAt:Date.now()+it.inMs})),sign:{last:'',streak:0},ads:{day:'',free:0},toy:${JSON.stringify(toy)},coat:${JSON.stringify(coat)},made:12}))}catch(e){}`;
+    try{localStorage.setItem('crispy-shop-v2',JSON.stringify({coins:${coins},toys:${JSON.stringify(TOYS)},coats:${JSON.stringify(COATS)},slots:${slots},
+      shelf:${JSON.stringify(shelf)}.map(it=>({est:it.price,tag:'正常成交',...it,listedAt:Date.now()+it.inMs-(it.tookMs||600000),readyAt:Date.now()+it.inMs})),sign:{last:'',streak:0},ads:{day:'',free:0},toy:${JSON.stringify(toy)},coat:${JSON.stringify(coat)},made:12}))}catch(e){}`;
 }
 
 function serve() {
@@ -33,7 +33,7 @@ async function chrome() {
   if (typeof WebSocket === 'undefined') throw new Error('Node 22 or newer is required');
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'crispy-chrome-'));
   const proc = spawn(CHROME, ['--headless=new', '--remote-debugging-port=0', '--no-first-run', '--no-default-browser-check',
-    '--hide-scrollbars', '--mute-audio', `--user-data-dir=${profile}`, 'about:blank'], {stdio: ['ignore', 'ignore', 'pipe']});
+    '--hide-scrollbars', '--mute-audio', '--autoplay-policy=no-user-gesture-required', `--user-data-dir=${profile}`, 'about:blank'], {stdio: ['ignore', 'ignore', 'pipe']});
   const port = await new Promise((resolve, reject) => {
     let log = ''; proc.stderr.on('data', d => { log += d; const m = log.match(/DevTools listening on ws:\/\/[^:]+:(\d+)/); if (m) resolve(m[1]); });
     proc.on('exit', () => reject(new Error('Chrome exited:\n' + log)));

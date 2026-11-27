@@ -36,13 +36,13 @@ async function main() {
     await sleep(600);
 
     // Make a strawberry, dip it twice more, and put it on the shelf.
-    await scroll(230); await click('#t-strawberry'); await sleep(500); await scroll(0); await sleep(700);
+    await scroll(280); await sleep(300); await click('#t-strawberry'); await sleep(500); await scroll(0); await sleep(700);
     await click('#dip'); await sleep(900); await click('#dip'); await sleep(1000);
     await click('#sell'); await sleep(900);
-    await click('[data-tab="shelf"]'); await sleep(400); await scroll(170); await sleep(1500);
+    await click('[data-tab="shelf"]'); await sleep(400); await scroll(210); await sleep(1700);
 
     // A fizzy drink: squeeze until it bursts.
-    await click('[data-tab="toys"]'); await sleep(300); await scroll(330); await click('#t-soda'); await sleep(400); await scroll(0); await sleep(700);
+    await click('[data-tab="toys"]'); await sleep(300); await scroll(520); await sleep(300); await click('#t-soda'); await sleep(400); await scroll(0); await sleep(700);
     await evaluate(`await press(0.45,0.44,420);await press(0.58,0.56,360);await press(0.5,0.5,400);await press(0.4,0.58,300);await press(0.6,0.42,300);`);
     await sleep(1400);
     recording = false; await send('Page.stopScreencast');
