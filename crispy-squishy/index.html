@@ -56,7 +56,7 @@ canvas#stage:active { cursor: grabbing; }
 .tag { position: absolute; left: 14px; top: 12px; pointer-events: none; font-size: 13px; color: var(--muted); }
 .tag b { color: var(--fg); font-weight: 600; }
 .actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
-.btn { font-family: var(--display); font-weight: 600; font-size: 15px; padding: 10px 8px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel); cursor: pointer; min-width: 0; }
+.btn { font-family: var(--display); font-weight: 600; font-size: 14px; white-space: nowrap; padding: 10px 6px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel); cursor: pointer; min-width: 0; }
 .btn.primary { background: var(--accent); color: var(--accent-fg); border-color: transparent; }
 .btn:disabled { opacity: 0.45; cursor: default; }
 .btn:focus-visible, .tab:focus-visible, .card:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
@@ -86,7 +86,7 @@ canvas#stage:active { cursor: grabbing; }
 .shelf { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .slot { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 108px; padding: 10px 6px; border-radius: 14px; border: 1px dashed var(--line); text-align: center; font-size: 13px; color: var(--muted); min-width: 0; }
 .slot.full { border-style: solid; background: var(--panel); color: var(--fg); }
-.slot .btn { font-size: 14px; padding: 6px 10px; }
+.slot .btn { font-size: 13px; padding: 6px 8px; max-width: 100%; }
 .days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 10px; }
 .day { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 2px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; min-width: 0; }
 .day b { color: var(--fg); font-size: 13px; }
@@ -100,7 +100,7 @@ summary { cursor: pointer; font-size: 14px; }
 .knobs input[type="range"] { width: 100%; min-width: 0; accent-color: var(--accent); }
 .knobs output { color: var(--muted); font-variant-numeric: tabular-nums; min-width: 2ch; text-align: right; }
 .note { color: var(--muted); font-size: 12px; margin: 10px 0 0; }
-.adtag { display: inline-block; font-size: 11px; line-height: 1.3; font-weight: 400; border: 1px solid currentColor; border-radius: 4px; padding: 0 3px; margin-right: 4px; opacity: 0.75; vertical-align: 1px; }
+.adtag { display: inline-block; font-size: 10px; line-height: 1.3; font-weight: 400; border: 1px solid currentColor; border-radius: 4px; padding: 0 3px; margin-right: 4px; opacity: 0.75; vertical-align: 1px; }
 .slot .btn + .btn { margin-top: -2px; }
 .sign-extra { margin-top: 10px; }
 .ad-demo { position: fixed; inset: 0; z-index: 50; background: rgba(8,14,12,0.78); display: flex; align-items: center; justify-content: center; padding: 24px; }
@@ -375,17 +375,32 @@ summary { cursor: pointer; font-size: 14px; }
   const SAVE_KEY = 'crispy-shop-v1';
   const fresh = () => ({ coins: 30, toys: ['egg', 'block', 'berry'], coats: ['plain', 'milk'], shelf: [], sign: { last: '', streak: 0 }, ads: { day: '', free: 0 }, toy: 'block', coat: 'plain', made: 0 });
   let S = fresh();
-  try {
-    const saved = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
-    if (saved && typeof saved === 'object') {
-      S = { ...S, ...saved, sign: { ...S.sign, ...(saved.sign || {}) }, ads: { ...S.ads, ...(saved.ads || {}) } };
-      S.toys = S.toys.filter(k => TOYS[k]); S.coats = S.coats.filter(k => COATS[k]);
-      S.shelf = (S.shelf || []).filter(it => TOYS[it.toy] && COATS[it.coat]);
+  // Inside TapTap the save lives in the host's storage (the global `tap`), which is what survives there;
+  // in a plain browser it lives in localStorage. Both are written, and the host's copy wins when reading.
+  const hostStore = () => (typeof tap !== 'undefined' && tap && typeof tap.setStorageSync === 'function' && typeof tap.getStorageSync === 'function') ? tap : null;
+  function adopt(text) {
+    try {
+      const saved = JSON.parse(text);
+      if (!saved || typeof saved !== 'object') return false;
+      const d = fresh();
+      S = { ...d, ...saved, sign: { ...d.sign, ...(saved.sign || {}) }, ads: { ...d.ads, ...(saved.ads || {}) } };
+      S.toys = (Array.isArray(S.toys) ? S.toys : d.toys).filter(k => TOYS[k]); S.coats = (Array.isArray(S.coats) ? S.coats : d.coats).filter(k => COATS[k]);
+      S.shelf = (Array.isArray(S.shelf) ? S.shelf : []).filter(it => it && TOYS[it.toy] && COATS[it.coat]);
+      S.coins = Math.max(0, Math.floor(+S.coins || 0));
       if (!TOYS[S.toy]) S.toy = 'block';
       if (!COATS[S.coat]) S.coat = 'plain';
-    }
-  } catch (_) {}
-  const save = () => { try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (_) {} };
+      return true;
+    } catch (_) { return false; }
+  }
+  const readHost = () => { try { const h = hostStore(); const v = h && h.getStorageSync(SAVE_KEY); return v ? String(v) : null; } catch (_) { return null; } };
+  const readLocal = () => { try { return localStorage.getItem(SAVE_KEY); } catch (_) { return null; } };
+  let loadedFromHost = false;
+  { const h = readHost(); if (h && adopt(h)) loadedFromHost = true; else { const l = readLocal(); if (l) adopt(l); } }
+  const save = () => {
+    const text = JSON.stringify(S);
+    try { const h = hostStore(); if (h) h.setStorageSync(SAVE_KEY, text); } catch (_) {}
+    try { localStorage.setItem(SAVE_KEY, text); } catch (_) {}
+  };
   const priceOf = (toy, coat, layers) => Math.round((12 + TOY_KEYS.indexOf(toy) * 3) * COATS[coat].mult * LAYER_MULT[layers - 1]);
   const sellMs = (toy, layers) => (18 + TOY_KEYS.indexOf(toy) * 2 + (layers - 1) * 8) * 1000;
 
@@ -1255,10 +1270,10 @@ summary { cursor: pointer; font-size: 14px; }
     cur.price = priceOf(S.toy, S.coat, cur.layers);
     if (!cur.touched) cur.tips = Math.round(cur.price * 0.25);   // squeezing it yourself pays about two thirds of selling it
     const dip = $('dip'), sell = $('sell');
-    dip.textContent = cur.layers >= 3 ? '已裹满 3 层' : `再裹一层（${cur.layers}/3）`;
+    dip.textContent = cur.layers >= 3 ? '已裹满 3 层' : `再裹一层 ${cur.layers}/3`;
     dip.disabled = cur.touched || cur.layers >= 3;
     const full = S.shelf.length >= SHELF_SLOTS;
-    sell.textContent = cur.touched ? '捏过的卖不了' : (full ? '货架满了' : `上架卖 +${cur.price}`);
+    sell.textContent = cur.touched ? '捏过不能卖' : (full ? '货架满了' : `上架卖 +${cur.price}`);
     sell.disabled = cur.touched || full;
     $('tag').innerHTML = `<b>${TOYS[S.toy].name}</b> · ${COATS[S.coat].name}脆皮 · ${cur.layers} 层`;
   }
@@ -1334,7 +1349,7 @@ summary { cursor: pointer; font-size: 14px; }
           slot.append(b, adButton(`双倍 +${it.price * 2}`, () => watchAd(() => take(it.price * 2))));
         } else {
           const wait = document.createElement('span'); wait.textContent = `等客人 ${Math.ceil((it.readyAt - now) / 1000)} 秒`;
-          slot.append(wait, adButton('马上卖出', () => watchAd(() => { it.readyAt = Date.now(); save(); renderShelf(); })));
+          slot.append(wait, adButton('马上卖', () => watchAd(() => { it.readyAt = Date.now(); save(); renderShelf(); })));
         }
       }
       box.appendChild(slot);
@@ -1370,7 +1385,7 @@ summary { cursor: pointer; font-size: 14px; }
     const leftAds = FREE_AD_CAP - S.ads.free, fb = $('freeAd');
     fb.textContent = '';
     const tag = document.createElement('span'); tag.className = 'adtag'; tag.textContent = '广告';
-    fb.append(tag, leftAds > 0 ? `看一段广告领 ${FREE_AD_BEANS} 糖豆（今天还剩 ${leftAds} 次）` : '今天的次数用完了，明天再来');
+    fb.append(tag, leftAds > 0 ? `看广告领 ${FREE_AD_BEANS} 糖豆 · 今天还剩 ${leftAds} 次` : '今天的次数用完了，明天再来');
     fb.disabled = leftAds <= 0;
   }
   $('freeAd').addEventListener('click', () => {
@@ -1397,6 +1412,7 @@ summary { cursor: pointer; font-size: 14px; }
 
   $('reset').addEventListener('click', () => {
     try { localStorage.removeItem(SAVE_KEY); } catch (_) {}
+    try { const h = hostStore(); if (h) { if (typeof h.removeStorageSync === 'function') h.removeStorageSync(SAVE_KEY); else h.setStorageSync(SAVE_KEY, ''); } } catch (_) {}
     S = fresh(); $('coins').textContent = S.coins;
     make(); renderShelf(); renderSign();
   });
@@ -1439,6 +1455,14 @@ summary { cursor: pointer; font-size: 14px; }
   if (window.ResizeObserver) new ResizeObserver(resize).observe(cv); else window.addEventListener('resize', resize);
   resize();
   requestAnimationFrame(frame);
+  // TapTap may inject `tap` only after this script has run. If so, pick up the save kept there
+  // (or, the first time, hand it the one from this browser) instead of overwriting it.
+  window.addEventListener('load', () => {
+    if (loadedFromHost || !hostStore()) return;
+    const h = readHost();
+    if (h && adopt(h)) { loadedFromHost = true; $('coins').textContent = S.coins; make(); renderShelf(); renderSign(); }
+    else save();
+  });
 })();
 </script>
 </body>

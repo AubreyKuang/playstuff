@@ -38,7 +38,43 @@
 
 休闲、模拟、解压、模拟经营
 
-## 要准备的图片和视频
+## 已经做好的物料
+
+全部由游戏自己渲染，没有用任何外部素材。重新生成的命令见最后一节。
+
+| 物料 | 文件 | 规格 |
+|---|---|---|
+| H5 游戏包 | `dist/taptap/crispy-h5-V1.0.0.zip`（构建产物，不进仓库） | 约 27KB，压缩包内是 `crispy/index.html` |
+| 图标 | `store/icon.png` | 1240×1240，直角，不透明 |
+| 截图 ×8 | `store/screenshots/01–08-*.jpg` | 1080×1920 竖屏，实机截取，没有加任何配文 |
+| 16:9 宣传图 | `store/banner-1920x1080.jpg` | 1920×1080，只有游戏名一处文字 |
+| 1:1 宣传图 | `store/banner-1440x1440.jpg` | 1440×1440，同上 |
+| 实机录屏 | `store/gameplay-1080x1920.mp4` | 约 19 秒，1080×1920，H.264，无声轨，开头两秒内捏爆 |
+| 隐私政策 | `privacy.html` | <https://aubreykuang.github.io/playstuff/crispy-squishy/privacy.html> |
+
+截图内容：1 刚做好的草莓；2 捏到一半的蓝莓；3 捏开的焦糖吐司；4 气泡水捏破；5 脆皮口味页（抹茶牛奶鸡蛋，裹了 3 层）；6 货架（一件已卖出、一件在等客人）；7 全部款式；8 签到。
+
+## 后台要填的事实
+
+参照同一账号下已上线的《像素小屋》：
+
+- 包体类型：H5 小游戏，非关卡，竖屏
+- 游戏类型：休闲（或模拟）
+- 是否联网：否。是否有内购：否。是否文字剧情模拟：否。是否有 IP 授权：否
+- 是否含 AI 生成内容：**是**（代码和画面在 AI 协助下完成）。AI 接入声明：不提供 AIGC 服务（玩家在游戏里不能生成任何内容）
+- 适龄：8+（没有恋爱、暴力和付费内容；以后台问卷的结果为准）
+- 隐私合规：平台托管，「是否收集用户隐私」选「否」
+- 分发状态：Android「开放试玩」，iOS「提供游玩」
+- 广告：游戏上线后在「商店 → 小游戏广告」申请开通，拿到广告位编号填进 `index.html` 的 `AD_UNIT_ID`，再发一个新版本
+
+## 为 TapTap 做的改动
+
+- 存档：优先写 TapTap 提供的存储（`tap.setStorageSync`），同时写浏览器本地存储；读取时 TapTap 那份优先。
+- 广告：在 TapTap 里用官方的 `tap.createRewardedVideoAd`，看完才发奖；没有广告位编号时显示明确标注的占位广告。
+- 没有任何外部请求：只用系统字体，画面全部由画布绘制，声音由程序合成。打包脚本会检查这一点。
+- 调手感的滑块和清空存档只有在网址后面加 `?dev` 时才出现。
+
+## 物料的审核要点
 
 | 物料 | 内容 | 审核要点 |
 |---|---|---|
@@ -60,3 +96,12 @@
 - [ ] 文字全部是简体中文
 - [ ] 隐私说明在游戏里能找到
 - [ ] 在后台"小游戏广告"拿到广告位编号后，填进 `index.html` 里的 `AD_UNIT_ID`
+
+## 重新生成
+
+```bash
+python3 crispy-squishy/tools/build-taptap.py --version 1.0.0   # 游戏包
+node crispy-squishy/tools/capture.cjs                          # 截图、图标和宣传图的原始画面（Node 22+、Chrome）
+python3 crispy-squishy/tools/compose-art.py                    # 图标、宣传图（Pillow）
+node crispy-squishy/tools/record-video.cjs                     # 录屏（另需 ffmpeg）
+```
