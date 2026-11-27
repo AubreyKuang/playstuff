@@ -6,7 +6,8 @@
 <title>脆皮捏捏</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap">
 <style>
-/* Layout: one column; the toy on a square stage is the page, readouts and tuning sit quietly below it. */
+/* Layout: one column. The toy on a square stage is the page; the shop (what you own, what you can
+   buy, the shelf, the daily stamp) sits in tabs under it. */
 :root {
   --bg: #e9f1ee;
   --stage: #cfe0d9;
@@ -17,60 +18,82 @@
   --line: #c2d3cc;
   --accent: #d6336c;
   --accent-fg: #fff7fa;
+  --bean: #f2b01e;
+  --bean-edge: #b97a00;
+  --good: #1f8a5b;
   --display: "ZCOOL KuaiLe", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
   --body: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #121c1a; --stage: #17231f; --stage-hi: #2a3f39; --panel: #1f302b; --fg: #e6f0ec; --muted: #94a9a2;
-    --line: #30443e; --accent: #ff6b9d; --accent-fg: #2a0a16; color-scheme: dark;
+    --line: #30443e; --accent: #ff6b9d; --accent-fg: #2a0a16; --bean: #f6c040; --bean-edge: #8a5c00; --good: #5fd3a0; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #121c1a; --stage: #17231f; --stage-hi: #2a3f39; --panel: #1f302b; --fg: #e6f0ec; --muted: #94a9a2;
-  --line: #30443e; --accent: #ff6b9d; --accent-fg: #2a0a16; color-scheme: dark;
+  --line: #30443e; --accent: #ff6b9d; --accent-fg: #2a0a16; --bean: #f6c040; --bean-edge: #8a5c00; --good: #5fd3a0; color-scheme: dark;
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 body {
   margin: 0;
-  background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.6;
-  padding-block: 20px 32px;
+  background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.5;
+  padding-block: 16px 32px;
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
-.wrap { max-width: 540px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
-header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-h1 { font-family: var(--display); font-weight: 400; font-size: 34px; line-height: 1.1; margin: 0; letter-spacing: 0.02em; }
-.sub { color: var(--muted); font-size: 13px; margin: 0; }
+button { font: inherit; color: inherit; }
+.wrap { max-width: 540px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+h1 { font-family: var(--display); font-weight: 400; font-size: 30px; line-height: 1.1; margin: 0; letter-spacing: 0.02em; }
+.wallet { display: flex; align-items: center; gap: 8px; }
+.purse { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px 6px 8px; border-radius: 999px; background: var(--panel); border: 1px solid var(--line); font-variant-numeric: tabular-nums; font-weight: 600; }
+.bean { width: 16px; height: 16px; border-radius: 50%; background: var(--bean); box-shadow: inset 0 -2px 0 var(--bean-edge); flex: none; }
 .stage-box { position: relative; background: radial-gradient(ellipse 70% 62% at 50% 44%, var(--stage-hi), var(--stage) 78%); border-radius: 28px; overflow: hidden; }
 canvas#stage { display: block; width: 100%; aspect-ratio: 1 / 1; max-width: 100%; touch-action: none; cursor: grab; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 canvas#stage:active { cursor: grabbing; }
-.hint {
-  position: absolute; left: 0; right: 0; bottom: 18px; text-align: center; pointer-events: none;
-  font-family: var(--display); font-size: 18px; color: var(--muted);
-}
-.readout { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
-.meter { flex: 1 1 200px; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.hint { position: absolute; left: 0; right: 0; bottom: 16px; text-align: center; pointer-events: none; font-family: var(--display); font-size: 18px; color: var(--muted); }
+.tag { position: absolute; left: 14px; top: 12px; pointer-events: none; font-size: 13px; color: var(--muted); }
+.tag b { color: var(--fg); font-weight: 600; }
+.actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.btn { font-family: var(--display); font-size: 16px; padding: 10px 8px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel); cursor: pointer; min-width: 0; }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: transparent; }
+.btn:disabled { opacity: 0.45; cursor: default; }
+.btn:focus-visible, .tab:focus-visible, .card:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+.btn.ready { animation: nudge 0.9s ease-in-out infinite; }
+@keyframes nudge { 50% { transform: scale(1.05); } }
+@media (prefers-reduced-motion: reduce) { .btn.ready { animation: none; } }
+.meter { display: flex; flex-direction: column; gap: 4px; }
 .meter-label { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .meter-label b { color: var(--fg); font-weight: 600; }
-.track { height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; }
-.fill { height: 100%; width: 100%; background: var(--accent); border-radius: 4px; }
-button#recoat {
-  font-family: var(--display); font-size: 18px; padding: 10px 20px; border-radius: 999px; border: 0;
-  background: var(--accent); color: var(--accent-fg); cursor: pointer;
-}
-button#recoat:focus-visible, .flavors label:focus-within, input:focus-visible, summary:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
-button#recoat.ready { animation: nudge 0.9s ease-in-out infinite; }
-@keyframes nudge { 50% { transform: scale(1.06); } }
-@media (prefers-reduced-motion: reduce) { button#recoat.ready { animation: none; } }
+.track { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.fill { height: 100%; width: 100%; background: var(--accent); border-radius: 3px; }
+.tabs { display: flex; gap: 6px; border-bottom: 1px solid var(--line); }
+.tab { flex: 1 1 0; min-width: 0; padding: 8px 4px; border: 0; background: none; cursor: pointer; font-size: 14px; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; position: relative; }
+.tab[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent); font-weight: 600; }
+.tab .pip { position: absolute; top: 6px; margin-left: 2px; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+.card { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 6px 8px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel); cursor: pointer; min-width: 0; text-align: center; }
+.card.on { border-color: var(--fg); box-shadow: inset 0 0 0 1px var(--fg); }
+.card.locked { background: none; border-style: dashed; }
+.card.poor .cost { color: var(--muted); }
+.swatch { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line); }
+.card .name { font-size: 13px; line-height: 1.25; }
+.card .sub { font-size: 12px; color: var(--muted); display: inline-flex; align-items: center; gap: 4px; font-variant-numeric: tabular-nums; }
+.card .sub .bean { width: 11px; height: 11px; box-shadow: inset 0 -1px 0 var(--bean-edge); }
+.card .cost { color: var(--fg); font-weight: 600; }
+.panel-note { color: var(--muted); font-size: 13px; margin: 0 0 8px; }
+.shelf { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.slot { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 108px; padding: 10px 6px; border-radius: 14px; border: 1px dashed var(--line); text-align: center; font-size: 13px; color: var(--muted); min-width: 0; }
+.slot.full { border-style: solid; background: var(--panel); color: var(--fg); }
+.slot .btn { font-size: 14px; padding: 6px 10px; }
+.days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 10px; }
+.day { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 2px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; min-width: 0; }
+.day b { color: var(--fg); font-size: 13px; }
+.day.got { background: none; opacity: 0.55; }
+.day.next { border-color: var(--accent); }
 .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-.flavors { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; border: 0; padding: 0; margin: 0; }
-.flavors legend { float: left; font-size: 13px; color: var(--muted); margin-right: 8px; padding: 0; }
-.flavors label { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); font-size: 13px; cursor: pointer; }
-.flavors input { position: absolute; opacity: 0; pointer-events: none; }
-.flavors label:has(input:checked) { border-color: var(--fg); }
-.dot { width: 12px; height: 12px; border-radius: 50%; border: 1px solid var(--line); }
 .sound { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
 details { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 10px 14px; }
 summary { cursor: pointer; font-size: 14px; }
@@ -84,29 +107,54 @@ summary { cursor: pointer; font-size: 14px; }
 
 <div class="wrap">
   <header>
-    <h1>脆皮捏捏</h1>
-    <p class="sub">手感原型：硬壳碎裂、内馅爆浆、粘土塑形</p>
+    <h1>脆皮捏捏铺</h1>
+    <div class="wallet">
+      <span class="purse" title="糖豆"><span class="bean"></span><span id="coins">0</span></span>
+      <button class="btn" id="signBtn" type="button">签到</button>
+    </div>
   </header>
 
   <div class="stage-box">
-    <canvas id="stage" aria-label="一颗裹着脆皮的捏捏，按住它可以捏爆外壳，挤出内馅"></canvas>
+    <canvas id="stage" aria-label="工作台上的一颗脆皮捏捏，按住它可以捏爆外壳，挤出内馅"></canvas>
+    <div class="tag" id="tag"></div>
     <div class="hint" id="hint">按住它，用力捏爆</div>
   </div>
 
-  <div class="readout">
-    <div class="meter">
-      <div class="meter-label"><span>完整脆皮 <b id="left">100%</b></span><span>碎片 <b id="flakes">0</b> · 爆浆 <b id="bursts">0</b> · 捏完 <b id="cleared">0</b> 颗</span></div>
-      <div class="track"><div class="fill" id="bar"></div></div>
-    </div>
-    <button id="recoat" type="button">再来一颗</button>
+  <div class="actions">
+    <button class="btn" id="dip" type="button">再裹一层</button>
+    <button class="btn" id="sell" type="button">上架卖</button>
+    <button class="btn primary" id="recoat" type="button">再做一颗</button>
   </div>
 
-  <div class="row">
-    <fieldset class="flavors" id="toys">
-      <legend>款式</legend>
-    </fieldset>
-    <label class="sound"><input type="checkbox" id="sound" checked>声音</label>
+  <div class="meter">
+    <div class="meter-label"><span>完整脆皮 <b id="left">100%</b></span><span>碎片 <b id="flakes">0</b> · 爆浆 <b id="bursts">0</b> · 捏完 <b id="cleared">0</b> 颗</span></div>
+    <div class="track"><div class="fill" id="bar"></div></div>
   </div>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" type="button" data-tab="toys" aria-selected="true">款式</button>
+    <button class="tab" role="tab" type="button" data-tab="coats" aria-selected="false">脆皮口味</button>
+    <button class="tab" role="tab" type="button" data-tab="shelf" aria-selected="false">货架<span class="pip" id="pip-shelf" hidden></span></button>
+    <button class="tab" role="tab" type="button" data-tab="sign" aria-selected="false">签到<span class="pip" id="pip-sign" hidden></span></button>
+  </div>
+
+  <section id="p-toys">
+    <p class="panel-note">点已有的款式就做一颗。没有的可以用糖豆兑换。</p>
+    <div class="grid" id="g-toys"></div>
+  </section>
+  <section id="p-coats" hidden>
+    <p class="panel-note">裹在外面的那层硬壳。口味越稀有，上架卖得越贵。</p>
+    <div class="grid" id="g-coats"></div>
+  </section>
+  <section id="p-shelf" hidden>
+    <p class="panel-note">没捏过的捏捏可以上架。卖出去比自己捏赚得多，但要等客人来。</p>
+    <div class="shelf" id="g-shelf"></div>
+  </section>
+  <section id="p-sign" hidden>
+    <p class="panel-note">每天来领一次糖豆，连续七天奖励递增，断签从第一天重新算。</p>
+    <div class="days" id="g-days"></div>
+    <button class="btn primary" id="claim" type="button">领取今天的糖豆</button>
+  </section>
 
   <details>
     <summary>调手感</summary>
@@ -117,7 +165,11 @@ summary { cursor: pointer; font-size: 14px; }
       <label for="k-ooze">爆浆量</label><input type="range" id="k-ooze" min="1" max="10" value="6"><output id="o-ooze">6</output>
       <label for="k-finger">手指大小</label><input type="range" id="k-finger" min="1" max="10" value="5"><output id="o-finger">5</output>
     </div>
-    <p class="note">内馅回弹 1 是粘土，捏成什么样就留成什么样；调高会越来越像 Q 弹的果冻。手机上可以两根手指一起捏。</p>
+    <div class="row" style="margin-top:10px">
+      <label class="sound"><input type="checkbox" id="sound" checked>声音</label>
+      <button class="btn" id="reset" type="button" style="font-size:13px;padding:6px 10px">清空存档</button>
+    </div>
+    <p class="note">内馅回弹 1 是粘土，捏成什么样就留成什么样；调高会越来越像 Q 弹的果冻。布丁和气泡水自带回弹。手机上可以两根手指一起捏。</p>
   </details>
 </div>
 
@@ -128,31 +180,67 @@ summary { cursor: pointer; font-size: 14px; }
   const shellCv = document.createElement('canvas');
   const sctx = shellCv.getContext('2d');
   const $ = id => document.getElementById(id);
-
   const hsl = (c, dl = 0, a = 1) => `hsla(${c[0]}, ${c[1]}%, ${Math.max(0, Math.min(100, c[2] + dl))}%, ${a})`;
+  const rnd = (a, b) => a + Math.random() * (b - a);
 
   // ---------- the toys ----------
   // Outlines are drawn in unit coordinates around the toy's centre (y points down). A toy can be
   // several overlapping outlines (a head plus two ears); the silhouette is their union.
   const param = (fn, n = 160) => { const p = []; for (let i = 0; i < n; i++) p.push(fn(i / n * Math.PI * 2)); return p; };
   const oval = (rx, ry, ox = 0, oy = 0) => param(t => [ox + rx * Math.cos(t), oy + ry * Math.sin(t)], 72);
+  const rrect = (w, h, r, ox = 0, oy = 0) => {
+    const p = [], hw = w / 2, hh = h / 2;
+    [[hw - r, hh - r], [-(hw - r), hh - r], [-(hw - r), -(hh - r)], [hw - r, -(hh - r)]].forEach(([x, y], q) => {
+      for (let i = 0; i <= 6; i++) { const a = (q + i / 6) * Math.PI / 2; p.push([ox + x + Math.cos(a) * r, oy + y + Math.sin(a) * r]); }
+    });
+    return p;
+  };
   const starPts = (x, y, ro, ri, squash = 1) => { const p = []; for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2 - Math.PI / 2, r = i % 2 ? ri : ro; p.push([x + Math.cos(a) * r, y + Math.sin(a) * r * squash]); } return p; };
   const INK = 'rgba(40,24,30,0.92)';
   const mirror = list => list.concat(list.map(d => ({ ...d, x: d.x === undefined ? undefined : -d.x, rot: d.rot ? -d.rot : d.rot, pts: d.pts ? d.pts.map(([x, y]) => [-x, y]) : undefined })));
+  const lemon = (x, y, r) => {
+    const d = [{ k: 'dot', x, y, rx: r, ry: r, c: 'hsl(50, 95%, 58%)' }, { k: 'dot', x, y, rx: r * 0.84, ry: r * 0.84, c: 'hsl(54, 95%, 78%)' }];
+    for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI; d.push({ k: 'line', c: 'rgba(255,255,240,0.9)', w: 0.014, pts: [[x - Math.cos(a) * r * 0.8, y - Math.sin(a) * r * 0.8], [x + Math.cos(a) * r * 0.8, y + Math.sin(a) * r * 0.8]] }); }
+    return d;
+  };
 
-  // each toy: hard shell, the doughy filling under it, the runny centre, the crack line colour,
-  // its outline, and what is painted on the shell (the paint breaks away with the shell)
+  // The hard coat that goes on the outside. "plain" keeps the food's own skin; the others are dipped coatings.
+  // g.p(angle, k) gives a point k of the way out to the silhouette, so a pattern fits any shape.
+  const COATS = {
+    plain: { name: '原味', price: 0, mult: 1 },
+    milk: { name: '牛奶', price: 0, mult: 1.1, shell: [42, 45, 95], crack: [30, 25, 58], deco: () => [] },
+    choco: { name: '巧克力', price: 80, mult: 1.25, shell: [20, 55, 25], crack: [38, 60, 84],
+      deco: g => [0.35, 0.05, -0.3].map(off => ({ k: 'line', c: 'rgba(125,75,40,0.6)', w: 0.03, pts: [-0.75, -0.45, -0.15, 0.15, 0.45, 0.75].map((x, i) => { const q = g.p(0, 1); return [x * q[0], off * g.p(Math.PI / 2, 1)[1] + (i % 2 ? 0.1 : -0.1)]; }) })) },
+    matcha: { name: '抹茶牛奶', price: 150, mult: 1.4, shell: [92, 38, 58], crack: [90, 35, 92],
+      deco: g => {
+        const d = [];
+        for (let i = 0; i < 6; i++) { const [x, y] = g.p(rnd(0, 6.283), rnd(0.15, 0.8)); d.push({ k: 'soft', x, y, r: rnd(0.22, 0.4), c: '255,255,244', a: 0.8 }); }
+        for (let i = 0; i < 3; i++) { const a = rnd(0, 6.283); d.push({ k: 'line', c: 'rgba(255,255,244,0.65)', w: 0.035, pts: [0.75, 0.4, 0.1, -0.3, -0.7].map((k, j) => g.p(a + j * 0.35, Math.abs(k))) }); }
+        return d;
+      } },
+    caramel: { name: '焦糖', price: 220, mult: 1.6, shell: [28, 88, 40], crack: [45, 65, 93],
+      deco: g => { const d = []; for (let i = 0; i < 5; i++) { const [x, y] = g.p(rnd(0, 6.283), rnd(0.2, 0.9)); d.push({ k: 'soft', x, y, r: rnd(0.25, 0.45), c: '105,40,5', a: 0.5 }); } return d; } },
+    berrymilk: { name: '草莓牛奶', price: 300, mult: 1.8, shell: [346, 78, 82], crack: [346, 65, 46],
+      deco: g => { const d = []; for (let i = 0; i < 18; i++) { const [x, y] = g.p(rnd(0, 6.283), Math.sqrt(Math.random()) * 0.85); d.push({ k: 'dot', x, y, rx: rnd(0.02, 0.04), ry: rnd(0.02, 0.035), rot: rnd(0, 3), c: i % 2 ? 'rgba(210,55,90,0.85)' : 'rgba(255,255,255,0.9)' }); } return d; } },
+  };
+
+  // Each food: its own skin (shell), the doughy filling, the runny centre, the crack colour, its outline,
+  // what is painted on the shell (the paint breaks away with it), and optionally what sits inside the filling.
   const TOYS = {
-    berry: { name: '蓝莓', shell: [228, 45, 24], paste: [268, 48, 80], goo: [286, 55, 46], crack: [268, 55, 84],
+    egg: { name: '鸡蛋', price: 0, shell: [32, 50, 88], paste: [50, 45, 95], goo: [43, 100, 52], crack: [28, 35, 48],
+      shape: () => [param(t => [0.76 * Math.cos(t) * (1 + 0.17 * Math.sin(t)), Math.sin(t)])],
+      deco: () => { const d = []; for (let i = 0; i < 12; i++) { const a = rnd(0, 6.283), r = Math.sqrt(Math.random()) * 0.6; d.push({ k: 'dot', x: Math.cos(a) * r, y: Math.sin(a) * r * 1.2, rx: rnd(0.02, 0.035), ry: 0.018, c: 'rgba(120,80,50,0.3)' }); } return d; } },
+    block: { name: '奶砖', price: 0, shell: [44, 55, 93], paste: [48, 80, 88], goo: [45, 60, 97], crack: [35, 35, 55],
+      shape: () => [rrect(1.6, 1.5, 0.3)],
+      deco: () => [{ k: 'line', c: 'rgba(170,150,110,0.45)', w: 0.018, close: true, pts: rrect(1.28, 1.18, 0.2) }, { k: 'text', x: 0, y: 0.02, size: 0.4, text: 'MILK', c: 'rgba(165,140,100,0.6)' }] },
+    berry: { name: '蓝莓', price: 0, shell: [228, 45, 24], paste: [268, 48, 80], goo: [286, 55, 46], crack: [268, 55, 84],
       shape: () => [oval(1, 0.94)],
       deco: () => [{ k: 'dot', x: 0, y: -0.6, rx: 0.2, ry: 0.12, c: 'rgba(8,10,36,0.6)' }, { k: 'line', c: 'rgba(150,165,230,0.75)', w: 0.014, close: true, pts: starPts(0, -0.6, 0.21, 0.1, 0.6) }] },
-    egg: { name: '鸡蛋', shell: [32, 50, 88], paste: [50, 45, 95], goo: [43, 100, 52], crack: [28, 35, 48],
-      shape: () => [param(t => [0.76 * Math.cos(t) * (1 + 0.17 * Math.sin(t)), Math.sin(t)])],
-      deco: () => { const d = []; for (let i = 0; i < 12; i++) { const a = Math.random() * 6.283, r = Math.sqrt(Math.random()) * 0.6; d.push({ k: 'dot', x: Math.cos(a) * r, y: Math.sin(a) * r * 1.2, rx: 0.02 + Math.random() * 0.015, ry: 0.018, c: 'rgba(120,80,50,0.3)' }); } return d; } },
-    mango: { name: '芒果', shell: [40, 96, 58], paste: [47, 92, 80], goo: [28, 100, 52], crack: [20, 75, 34],
-      shape: () => [param(t => { const x = Math.cos(t) * (1 + 0.12 * Math.cos(t)), y = 0.66 * Math.sin(t) + 0.16 * Math.cos(t) * Math.cos(t) - 0.08; return [x * 0.94 + y * 0.34, -x * 0.34 + y * 0.94]; })],
-      deco: () => [{ k: 'soft', x: 0.35, y: -0.3, r: 0.75, c: '250,70,40', a: 0.6 }, { k: 'soft', x: -0.6, y: 0.25, r: 0.5, c: '120,170,40', a: 0.4 }] },
-    strawberry: { name: '草莓', shell: [352, 80, 50], paste: [345, 85, 88], goo: [350, 85, 44], crack: [345, 90, 90],
+    toast: { name: '吐司', price: 60, shell: [27, 62, 44], paste: [45, 55, 96], goo: [44, 95, 62], crack: [42, 60, 94],
+      shape: () => [rrect(1.56, 1.3, 0.2, 0, 0.14), oval(0.46, 0.36, -0.36, -0.5), oval(0.46, 0.36, 0.36, -0.5)],
+      deco: g => [{ k: 'poly', c: 'hsl(40, 78%, 84%)', pts: g.ring(0.83) }, { k: 'soft', x: 0, y: 0.1, r: 0.7, c: '225,160,70', a: 0.25 },
+        { k: 'poly', c: 'hsl(48, 96%, 66%)', pts: [[-0.2, -0.02], [0.14, -0.1], [0.24, 0.2], [-0.1, 0.28]] }, { k: 'soft', x: -0.02, y: 0.04, r: 0.12, c: '255,255,255', a: 0.6 }] },
+    strawberry: { name: '草莓', price: 90, shell: [352, 80, 50], paste: [345, 85, 88], goo: [350, 85, 44], crack: [345, 90, 90],
       shape: () => [param(t => { const c = Math.cos(t), s = Math.sin(t); return s > 0 ? [0.95 * c * (1 - 0.5 * s * s), 1.08 * s - 0.15] : [0.95 * c, 0.7 * s - 0.15]; })],
       deco: () => {
         const d = [];
@@ -161,14 +249,66 @@ summary { cursor: pointer; font-size: 14px; }
         [20, 55, 90, 125, 160].forEach(deg => { const a = deg * Math.PI / 180; d.push({ k: 'dot', x: Math.cos(a) * 0.22, y: -0.86 + Math.sin(a) * 0.22, rx: 0.22, ry: 0.09, rot: a, c: 'hsl(125, 55%, 34%)' }); });
         return d;
       } },
-    heart: { name: '爱心', shell: [338, 85, 60], paste: [24, 90, 91], goo: [330, 90, 52], crack: [338, 85, 93],
+    mochi: { name: '芝麻汤圆', price: 120, shell: [40, 25, 96], paste: [30, 8, 40], goo: [30, 10, 13], crack: [30, 10, 34],
+      shape: () => [oval(1, 0.9)],
+      deco: () => [{ k: 'soft', x: 0.25, y: 0.3, r: 0.8, c: '200,190,175', a: 0.3 }] },
+    popsicle: { name: '脆皮雪糕', price: 160, smooth: 1, shell: [20, 55, 26], paste: [48, 85, 92], goo: [48, 75, 96], crack: [45, 70, 90],
+      shape: () => [rrect(1.04, 1.5, 0.44, 0, -0.2), [[-0.15, 0.4], [0.15, 0.4], [0.15, 1.0], [-0.15, 1.0]]],
+      deco: () => {
+        const d = [{ k: 'poly', c: 'hsl(35, 55%, 72%)', pts: [[-0.3, 0.57], [0.3, 0.57], [0.3, 1.1], [-0.3, 1.1]] }, { k: 'line', c: 'rgba(120,80,40,0.35)', w: 0.012, pts: [[0, 0.62], [0, 0.95]] }];
+        for (let i = 0; i < 16; i++) d.push({ k: 'dot', x: rnd(-0.38, 0.38), y: rnd(-0.8, 0.4), rx: rnd(0.025, 0.05), ry: rnd(0.02, 0.035), rot: rnd(0, 3), c: 'rgba(215,165,100,0.9)' });
+        return d;
+      } },
+    mango: { name: '芒果', price: 200, shell: [40, 96, 58], paste: [47, 92, 80], goo: [28, 100, 52], crack: [20, 75, 34],
+      shape: () => [param(t => { const x = Math.cos(t) * (1 + 0.12 * Math.cos(t)), y = 0.66 * Math.sin(t) + 0.16 * Math.cos(t) * Math.cos(t) - 0.08; return [x * 0.94 + y * 0.34, -x * 0.34 + y * 0.94]; })],
+      deco: () => [{ k: 'soft', x: 0.35, y: -0.3, r: 0.75, c: '250,70,40', a: 0.6 }, { k: 'soft', x: -0.6, y: 0.25, r: 0.5, c: '120,170,40', a: 0.4 }] },
+    bao: { name: '灌汤包', price: 240, shell: [42, 32, 93], paste: [16, 42, 66], goo: [40, 92, 58], crack: [30, 25, 55],
+      shape: () => [oval(1, 0.84, 0, 0.1), oval(0.2, 0.17, 0, -0.74)],
+      deco: () => {
+        const d = [{ k: 'soft', x: 0, y: 0.5, r: 0.8, c: '190,170,140', a: 0.3 }];
+        for (let i = 0; i < 13; i++) { const a = -Math.PI + (i / 12) * Math.PI; d.push({ k: 'line', c: 'rgba(150,125,95,0.5)', w: 0.014, pts: [[Math.cos(a) * 0.08, -0.7 + Math.sin(a) * 0.04 + 0.04], [Math.cos(a + 0.35) * 0.34, -0.48 - Math.sin(a) * -0.02], [Math.cos(a + 0.6) * 0.62, -0.2 + Math.abs(Math.cos(a)) * 0.12]] }); }
+        return d;
+      } },
+    pudding: { name: '布丁', price: 280, jelly: 0.7, shell: [45, 92, 66], paste: [46, 88, 76], goo: [26, 90, 36], crack: [30, 80, 34],
+      shape: () => [[[-0.62, -0.72], [0.62, -0.72], [0.96, 0.74], [-0.96, 0.74]]],
+      deco: () => [{ k: 'poly', c: 'hsl(26, 82%, 30%)', pts: [[-0.7, -0.8], [0.7, -0.8], [0.76, -0.36], [0.48, -0.26], [0.2, -0.4], [-0.08, -0.24], [-0.38, -0.38], [-0.76, -0.28]] }, { k: 'soft', x: -0.2, y: -0.56, r: 0.2, c: '255,255,255', a: 0.35 }] },
+    friedegg: { name: '荷包蛋', price: 320, shell: [48, 35, 97], paste: [48, 40, 93], goo: [42, 100, 52], crack: [35, 30, 55],
+      shape: () => [param(t => { const r = 0.82 + 0.1 * Math.sin(3 * t + 0.5) + 0.07 * Math.cos(5 * t); return [r * Math.cos(t), r * Math.sin(t) * 0.92]; })],
+      deco: g => [{ k: 'line', c: 'rgba(190,130,60,0.45)', w: 0.06, close: true, pts: g.ring(0.97) }, { k: 'dot', x: 0.08, y: -0.04, rx: 0.36, ry: 0.34, c: 'hsl(42, 100%, 55%)' },
+        { k: 'soft', x: 0.2, y: 0.1, r: 0.3, c: '225,120,0', a: 0.45 }, { k: 'soft', x: -0.05, y: -0.17, r: 0.14, c: '255,255,255', a: 0.85 }] },
+    chocobar: { name: '巧克力板', price: 360, shell: [22, 50, 24], paste: [35, 72, 70], goo: [32, 96, 50], crack: [38, 65, 82],
+      shape: () => [rrect(1.76, 1.3, 0.1)],
+      deco: () => {
+        const d = [];
+        [[[-0.29, -0.56], [-0.29, 0.56]], [[0.29, -0.56], [0.29, 0.56]], [[-0.8, 0], [0.8, 0]]].forEach(pts => {
+          d.push({ k: 'line', c: 'rgba(0,0,0,0.4)', w: 0.035, pts });
+          d.push({ k: 'line', c: 'rgba(255,255,255,0.13)', w: 0.018, pts: pts.map(([x, y]) => [x + 0.03, y + 0.03]) });
+        });
+        return d;
+      } },
+    soda: { name: '气泡水', price: 420, jelly: 0.8, fizz: true, shellAlpha: 0.5, shell: [195, 60, 86], paste: [196, 88, 62], goo: [196, 92, 72], crack: [0, 0, 100],
+      shape: () => [rrect(1.44, 1.62, 0.2, 0, 0.04)],
+      deco: () => [{ k: 'poly', c: 'rgba(255,255,255,0.55)', pts: [[-0.74, -0.78], [0.74, -0.78], [0.74, -0.58], [-0.74, -0.58]] }, { k: 'line', c: 'rgba(120,160,190,0.7)', w: 0.014, pts: [[-0.7, -0.68], [0.7, -0.68]] },
+        { k: 'soft', x: -0.42, y: 0.1, r: 0.22, c: '255,255,255', a: 0.5 }],
+      inner: () => lemon(-0.26, -0.05, 0.25).concat(lemon(0.3, 0.38, 0.2), [[0.36, -0.2, 'hsl(350, 85%, 62%)'], [-0.38, 0.45, 'hsl(28, 95%, 60%)'], [0, 0.6, 'hsl(350, 85%, 62%)'], [0.1, -0.42, 'hsl(120, 55%, 55%)'], [-0.5, -0.36, 'hsl(28, 95%, 60%)']].map(([x, y, c]) => ({ k: 'dot', x, y, rx: 0.075, ry: 0.075, c }))) },
+    onigiri: { name: '饭团', price: 480, shell: [50, 28, 96], paste: [50, 28, 92], goo: [8, 82, 62], crack: [35, 20, 58],
+      shape: () => [param(t => { const r = 0.78 + 0.13 * Math.cos(3 * (t + Math.PI / 2)); return [r * Math.cos(t), r * Math.sin(t) + 0.08]; })],
+      deco: () => {
+        const d = [{ k: 'poly', c: 'hsl(140, 25%, 13%)', pts: [[-0.3, 0.14], [0.3, 0.14], [0.36, 0.78], [-0.36, 0.78]] }];
+        for (let i = 0; i < 14; i++) { const x = rnd(-0.45, 0.45), y = rnd(-0.55, 0.05), a = rnd(0, 3); d.push({ k: 'line', c: 'rgba(170,160,140,0.45)', w: 0.014, pts: [[x, y], [x + Math.cos(a) * 0.07, y + Math.sin(a) * 0.07]] }); }
+        return d;
+      } },
+    yolkpastry: { name: '蛋黄酥', price: 540, shell: [33, 82, 50], paste: [352, 38, 30], goo: [38, 100, 55], crack: [40, 70, 90],
+      shape: () => [oval(1, 0.88)],
+      deco: () => { const d = [{ k: 'soft', x: 0, y: -0.25, r: 0.75, c: '140,62,8', a: 0.55 }]; for (let i = 0; i < 16; i++) { const a = rnd(0, 6.283), r = Math.sqrt(Math.random()) * 0.3; d.push({ k: 'dot', x: Math.cos(a) * r, y: -0.3 + Math.sin(a) * r * 0.7, rx: 0.028, ry: 0.018, rot: rnd(0, 3), c: 'rgba(25,18,12,0.92)' }); } return d; } },
+    heart: { name: '爱心巧克力', price: 600, shell: [16, 58, 27], paste: [345, 80, 86], goo: [350, 86, 50], crack: [345, 80, 90],
       shape: () => [param(t => [16 * Math.pow(Math.sin(t), 3) / 17, -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)) / 17 + 0.1])],
-      deco: () => [{ k: 'soft', x: -0.4, y: -0.4, r: 0.3, c: '255,255,255', a: 0.5 }] },
-    star: { name: '星星', shell: [48, 98, 56], paste: [52, 95, 88], goo: [32, 100, 54], crack: [30, 75, 34],
+      deco: () => [-0.2, 0.05, 0.3].map(y => ({ k: 'line', c: 'rgba(255,245,235,0.8)', w: 0.03, pts: [[-0.6, y + 0.1], [-0.3, y - 0.06], [0, y + 0.1], [0.3, y - 0.06], [0.6, y + 0.1]] })) },
+    star: { name: '星星糖', price: 680, shell: [48, 98, 56], paste: [52, 95, 88], goo: [32, 100, 54], crack: [30, 75, 34],
       shape: () => [param(t => { const r = 0.68 + 0.3 * Math.cos(5 * (t + Math.PI / 2)); return [r * Math.cos(t), r * Math.sin(t)]; }, 220)],
       deco: () => mirror([{ k: 'dot', x: 0.2, y: -0.02, rx: 0.055, ry: 0.07, c: INK }, { k: 'soft', x: 0.36, y: 0.1, r: 0.15, c: '255,90,90', a: 0.5 }])
         .concat([{ k: 'line', c: INK, w: 0.02, pts: [[-0.1, 0.12], [0, 0.2], [0.1, 0.12]] }]) },
-    cat: { name: '猫猫', shell: [30, 85, 60], paste: [36, 75, 90], goo: [14, 90, 60], crack: [22, 65, 28],
+    cat: { name: '猫猫馒头', price: 780, shell: [30, 85, 60], paste: [36, 75, 90], goo: [14, 90, 60], crack: [22, 65, 28],
       shape: () => [oval(1, 0.84, 0, 0.1), [[-0.92, -0.2], [-0.8, -0.98], [-0.22, -0.6]], [[0.92, -0.2], [0.8, -0.98], [0.22, -0.6]]],
       deco: () => mirror([
         { k: 'dot', x: 0.6, y: -0.56, rx: 0.1, ry: 0.15, rot: 0.3, c: 'rgba(255,175,175,0.9)' },
@@ -181,7 +321,7 @@ summary { cursor: pointer; font-size: 14px; }
         { k: 'dot', x: 0, y: 0.2, rx: 0.05, ry: 0.035, c: 'rgba(225,105,120,1)' },
         { k: 'line', c: INK, w: 0.018, pts: [[-0.14, 0.27], [-0.07, 0.33], [0, 0.24], [0.07, 0.33], [0.14, 0.27]] },
       ]) },
-    bear: { name: '小熊', shell: [25, 45, 40], paste: [32, 55, 82], goo: [40, 95, 55], crack: [32, 60, 86],
+    bear: { name: '小熊饼干', price: 900, shell: [25, 45, 40], paste: [32, 55, 82], goo: [40, 95, 55], crack: [32, 60, 86],
       shape: () => [oval(0.9, 0.86, 0, 0.1), oval(0.32, 0.32, -0.66, -0.62), oval(0.32, 0.32, 0.66, -0.62)],
       deco: () => mirror([
         { k: 'dot', x: 0.66, y: -0.62, rx: 0.16, ry: 0.16, c: 'rgba(240,200,160,0.9)' },
@@ -193,9 +333,45 @@ summary { cursor: pointer; font-size: 14px; }
         { k: 'line', c: INK, w: 0.018, pts: [[-0.1, 0.42], [0, 0.38], [0.1, 0.42]] },
       ]) },
   };
-  const TOY_KEYS = Object.keys(TOYS);
-  let toyKey = TOY_KEYS[(Math.random() * TOY_KEYS.length) | 0];
-  let decals = [], unit = 1;
+  const TOY_KEYS = Object.keys(TOYS), COAT_KEYS = Object.keys(COATS);
+
+  // ---------- the shop ----------
+  const SIGN = [30, 40, 50, 60, 80, 100, 200];           // sugar beans for day 1..7 of a streak
+  const LAYER_MULT = [1, 1.5, 2];                        // each extra dip makes the toy worth more
+  const SHELF_SLOTS = 3;
+  const SAVE_KEY = 'crispy-shop-v1';
+  const fresh = () => ({ coins: 30, toys: ['egg', 'block', 'berry'], coats: ['plain', 'milk'], shelf: [], sign: { last: '', streak: 0 }, toy: 'block', coat: 'plain', made: 0 });
+  let S = fresh();
+  try {
+    const saved = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
+    if (saved && typeof saved === 'object') {
+      S = { ...S, ...saved, sign: { ...S.sign, ...(saved.sign || {}) } };
+      S.toys = S.toys.filter(k => TOYS[k]); S.coats = S.coats.filter(k => COATS[k]);
+      S.shelf = (S.shelf || []).filter(it => TOYS[it.toy] && COATS[it.coat]);
+      if (!TOYS[S.toy]) S.toy = 'block';
+      if (!COATS[S.coat]) S.coat = 'plain';
+    }
+  } catch (_) {}
+  const save = () => { try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (_) {} };
+  const priceOf = (toy, coat, layers) => Math.round((12 + TOY_KEYS.indexOf(toy) * 3) * COATS[coat].mult * LAYER_MULT[layers - 1]);
+  const sellMs = (toy, layers) => (18 + TOY_KEYS.indexOf(toy) * 2 + (layers - 1) * 8) * 1000;
+
+  // the toy on the workbench right now
+  const cur = { layers: 1, touched: false, pieces: 0, price: 0 };
+  let look = { shell: [0, 0, 50], paste: [0, 0, 80], goo: [0, 0, 60], crack: [0, 0, 90], jelly: 0, fizz: false, shellAlpha: 1 };
+
+  const P = { brittle: 6, soft: 5, rebound: 1, ooze: 6, finger: 5 };
+  const K = 12;                      // rings in the mesh
+
+  let W = 0, H = 0, DPR = 1, R = 0, cx = 0, cy = 0, c0 = { x: 0, y: 0 }, unit = 1;
+  let pts = [], edges = [], tris = [], boundary = [], vEdges = [], vTris = [];
+  let decals = [], innerDecals = [];
+  let loose = [], compsDirty = false;   // shell pieces that have cracked free but not come away yet
+  const fingers = new Map();
+  let shards = [], stuck = [], goo = [], blobs = [], dimples = [], dust = [], bubbles = [], pops = [], floats = [];
+  let lastBurst = 0;
+  let coat = 1, pressure = 1, shellCount = 0, flakedTotal = 0, burstTotal = 0, cleared = 0, doneFlag = false, touched = false;
+  let soundOn = true;
 
   // a soft mottled texture so the filling reads as dough rather than flat colour
   const pasteTex = document.createElement('canvas');
@@ -225,17 +401,6 @@ summary { cursor: pointer; font-size: 14px; }
     }
     return best;
   }
-  const P = { brittle: 6, soft: 5, rebound: 1, ooze: 6, finger: 5 };
-  const K = 12;                      // rings in the mesh
-
-  let W = 0, H = 0, DPR = 1, R = 0, cx = 0, cy = 0, c0 = { x: 0, y: 0 };
-  let pts = [], edges = [], tris = [], boundary = [], vEdges = [], vTris = [];
-  let loose = [], compsDirty = false;   // shell pieces that have cracked free but not come away yet
-  const fingers = new Map();
-  let shards = [], stuck = [], goo = [], blobs = [], dimples = [], dust = [];
-  let lastBurst = 0;
-  let coat = 1, pressure = 1, shellCount = 0, flakedTotal = 0, burstTotal = 0, cleared = 0, doneFlag = false, touched = false;
-  let soundOn = true;
 
   // ---------- mesh ----------
   const mk = (x, y) => ({ x, y, px: x, py: y, hx: x, hy: y, ox: x, oy: y, bare: false });
@@ -244,20 +409,25 @@ summary { cursor: pointer; font-size: 14px; }
   function build(wobble) {
     pts = []; edges = []; tris = []; boundary = [];
     R = W * 0.34; cx = W / 2; cy = H * 0.48;
-    const toy = TOYS[toyKey], polys = toy.shape();
+    const toy = TOYS[S.toy], coating = COATS[S.coat], polys = toy.shape();
+    const dipped = S.coat !== 'plain';
+    look = {
+      shell: dipped ? coating.shell : toy.shell, crack: dipped ? coating.crack : toy.crack,
+      paste: toy.paste, goo: toy.goo, jelly: toy.jelly || 0, fizz: !!toy.fizz, shellAlpha: dipped ? 1 : (toy.shellAlpha || 1),
+    };
     // sample the silhouette around the centre, round off sharp corners, and keep deep notches shallow
     const nb = 6 * K;
     let rb = [];
     for (let i = 0; i < nb; i++) rb.push(rayRadius(polys, i / nb * Math.PI * 2 - Math.PI / 2));
-    for (let pass = 0; pass < 2; pass++) rb = rb.map((r, i) => (rb[(i + nb - 1) % nb] + 2 * r + rb[(i + 1) % nb]) / 4);
+    for (let pass = 0; pass < (toy.smooth === undefined ? 2 : toy.smooth); pass++) rb = rb.map((r, i) => (rb[(i + nb - 1) % nb] + 2 * r + rb[(i + 1) % nb]) / 4);
     const maxR = Math.max(...rb);
     rb = rb.map(r => Math.max(r, maxR * 0.36));
     unit = R / maxR;
-    const radAt = a => {
+    const radU = a => {                                   // silhouette radius in unit coordinates
       let u = (a + Math.PI / 2) / (Math.PI * 2) * nb;
       u = ((u % nb) + nb) % nb;
       const i0 = Math.floor(u), f = u - i0;
-      return (rb[i0] * (1 - f) + rb[(i0 + 1) % nb] * f) * unit;
+      return rb[i0] * (1 - f) + rb[(i0 + 1) % nb] * f;
     };
     const ringStart = [0];
     pts.push(mk(cx, cy));
@@ -267,7 +437,7 @@ summary { cursor: pointer; font-size: 14px; }
       for (let i = 0; i < n; i++) {
         let a = (i / n) * Math.PI * 2 - Math.PI / 2, f = k / K;
         if (k < K) { a += (Math.random() - 0.5) * 0.5 / k; f += (Math.random() - 0.5) * 0.3 / K; }
-        const r = radAt(a) * f;
+        const r = radU(a) * unit * f;
         pts.push(mk(cx + Math.cos(a) * r, cy + Math.sin(a) * r));
       }
     }
@@ -293,7 +463,7 @@ summary { cursor: pointer; font-size: 14px; }
         if (ei === undefined) {
           const pa = pts[u], pb = pts[v], len = Math.hypot(pb.x - pa.x, pb.y - pa.y);
           ei = edges.length;
-          edges.push({ a: u, b: v, rest: len, rest0: len, t: [], cracked: false, shell: true, seam: false, thr: 1 });
+          edges.push({ a: u, b: v, rest: len, rest0: len, t: [], cracked: false, shell: true, seam: false, thr: 1, born: 0 });
           map.set(key, ei);
         }
         edges[ei].t.push(ti);
@@ -304,10 +474,25 @@ summary { cursor: pointer; font-size: 14px; }
     edges.forEach((e, ei) => { vEdges[e.a].push(ei); vEdges[e.b].push(ei); });
     c0 = { x: 0, y: 0 };
     for (const p of pts) { c0.x += p.x / pts.length; c0.y += p.y / pts.length; }
+
     // paint rides the mesh: every painted point remembers where on the toy it sits
+    const g = {
+      p: (a, k) => [Math.cos(a) * radU(a) * k, Math.sin(a) * radU(a) * k],
+      ring: k => rb.map((r, i) => { const a = i / nb * Math.PI * 2 - Math.PI / 2; return [Math.cos(a) * r * k, Math.sin(a) * r * k]; }),
+    };
     const pin = (x, y) => anchor(cx + x * unit, cy + y * unit);
-    decals = toy.deco().map(d => d.k === 'line' ? { ...d, ans: d.pts.map(([x, y]) => pin(x, y)) } : { ...d, an: pin(d.x, d.y) });
+    const pinAll = list => list.map(d => (d.k === 'line' || d.k === 'poly') ? { ...d, ans: d.pts.map(([x, y]) => pin(x, y)) } : { ...d, an: pin(d.x, d.y) });
+    decals = pinAll((dipped ? coating.deco(g) : []).concat(toy.deco(g)));
+    innerDecals = pinAll(toy.inner ? toy.inner(g) : []);
+    bubbles = [];
+    if (look.fizz) for (let i = 0; i < 30; i++) bubbles.push({ x: cx + rnd(-R, R), y: cy + rnd(-R, R), r: rnd(1.5, 5), v: rnd(0.3, 1.1) });
     newToy(!!wobble);
+  }
+
+  function addTri(a, b, c) {
+    if (area(pts[a], pts[b], pts[c]) < 0) { const t = b; b = c; c = t; }
+    const pa = pts[a], pb = pts[b], pc = pts[c], ar = area(pa, pb, pc);
+    tris.push({ a, b, c, rest: ar, rest0: ar, rc: { x: (pa.x + pb.x + pc.x) / 3, y: (pa.y + pb.y + pc.y) / 3 }, shell: true, plate: 0, seen: false, e: null, sh: undefined, lt: undefined });
   }
 
   // remember a point of the rest shape as barycentric weights of the triangle it sits in
@@ -330,13 +515,8 @@ summary { cursor: pointer; font-size: 14px; }
     return { x: a.x * an.u + b.x * an.v + c.x * an.w, y: a.y * an.u + b.y * an.v + c.y * an.w };
   }
 
-  function addTri(a, b, c) {
-    if (area(pts[a], pts[b], pts[c]) < 0) { const t = b; b = c; c = t; }
-    const pa = pts[a], pb = pts[b], pc = pts[c], ar = area(pa, pb, pc);
-    tris.push({ a, b, c, rest: ar, rest0: ar, rc: { x: (pa.x + pb.x + pc.x) / 3, y: (pa.y + pb.y + pc.y) / 3 }, shell: true, plate: 0, seen: false, e: null });
-  }
-
-  const baseThr = () => 0.40 - 0.032 * P.brittle;
+  // more dipped layers make a thicker shell: harder to break, worth more
+  const baseThr = () => (0.40 - 0.032 * P.brittle) * (1 + 0.4 * (cur.layers - 1));
   const edgeThr = e => baseThr() * (0.65 + 0.7 * Math.random()) * (e.seam ? 1 : 2.6);
 
   function newToy(wobble) {
@@ -358,15 +538,17 @@ summary { cursor: pointer; font-size: 14px; }
       }
       t.plate = best; t.shell = true; t.rest = t.rest0; t.sh = undefined; t.lt = undefined;
     }
+    cur.layers = 1; cur.touched = false; cur.pieces = 0; cur.price = priceOf(S.toy, S.coat, 1);
     for (const e of edges) {
       e.cracked = false; e.shell = true; e.rest = e.rest0;
       e.seam = e.t.length === 2 && tris[e.t[0]].plate !== tris[e.t[1]].plate;
       e.thr = edgeThr(e);
     }
-    shards = []; stuck = []; goo = []; blobs = []; dimples = []; dust = [];
+    shards = []; stuck = []; goo = []; blobs = []; dimples = []; dust = []; pops = [];
     loose = []; compsDirty = false; pressure = 1;
     shellCount = tris.length; doneFlag = false;
     $('recoat').classList.remove('ready');
+    updateActions();
   }
 
   function nearestVertex(x, y) {
@@ -380,7 +562,7 @@ summary { cursor: pointer; font-size: 14px; }
 
   // ---------- physics ----------
   function physics(now) {
-    const jelly = (P.rebound - 1) / 9;                    // 0 = clay that keeps its shape, 1 = bouncy jelly
+    const jelly = Math.max(look.jelly, (P.rebound - 1) / 9);                    // 0 = clay that keeps its shape, 1 = bouncy jelly
     const creep = (0.03 + 0.012 * P.soft) * (1 - jelly);  // how fast the filling gives up its old shape
     const fingerR = R * (0.16 + 0.028 * P.finger);
     const damp = 0.55 + 0.25 * jelly;
@@ -509,6 +691,7 @@ summary { cursor: pointer; font-size: 14px; }
       const d = Math.hypot(b.x - a.x, b.y - a.y);
       if (Math.abs(d - e.rest) / e.rest > e.thr) {
         e.cracked = true; e.born = performance.now(); cracks++; compsDirty = true;
+        if (!cur.touched) { cur.touched = true; updateActions(); }   // once it has been squeezed it can no longer be sold
         for (const ti of e.t) {
           const t = tris[ti];
           if (!e.seam) t.sh = Math.random() * 2 - 1;        // a plate that splits inside breaks into smaller facets
@@ -541,7 +724,10 @@ summary { cursor: pointer; font-size: 14px; }
     }
     if (cracks) { for (let i = 0; i < Math.min(cracks, 3); i++) crackle(0.5 + cracks / 10); buzz(6); }
     if (flakes) { for (let i = 0; i < Math.min(flakes, 2); i++) snap(); }
-    if (shellCount === 0 && !doneFlag) { doneFlag = true; cleared++; $('recoat').classList.add('ready'); }
+    if (shellCount === 0 && !doneFlag) {                   // squeezed clean: half its shelf price, paid at once
+      doneFlag = true; cleared++; S.made++; $('recoat').classList.add('ready');
+      earn(Math.round(cur.price * 0.5), cx, cy - R * 0.4);
+    }
   }
 
   // shell triangles still joined through uncracked edges form one piece; small pieces are free to come away
@@ -572,6 +758,7 @@ summary { cursor: pointer; font-size: 14px; }
     for (const t of piece.tris) for (const ei of t.e) edges[ei].shell = edges[ei].t.some(ti => tris[ti].shell);
     for (const v of verts) pts[v].bare = vTris[v].every(ti => !tris[ti].shell);
     shellCount -= piece.tris.length; flakedTotal++;
+    if (++cur.pieces % 15 === 0) earn(1, mx, my);          // a trickle of beans for the show
 
     // the outer edge of the piece (edges that belong to only one of its triangles), for its lit rim
     const uses = new Map();
@@ -621,7 +808,8 @@ summary { cursor: pointer; font-size: 14px; }
       blobs.push({ v, ox: (Math.random() - 0.5) * 8, oy: (Math.random() - 0.5) * 8, r: 9 + Math.random() * 12 * s });
     }
     if (blobs.length > 40) blobs.splice(0, blobs.length - 40);
-    squelch(s); buzz(18);
+    if (look.fizz) { fizzPop(x, y, s); hiss(); } else squelch(s);
+    buzz(18); earn(1, x, y);
   }
 
   // ---------- sound & haptics ----------
@@ -653,6 +841,7 @@ summary { cursor: pointer; font-size: 14px; }
   const crackle = k => noiseBurst(2000 + Math.random() * 3800, 1.4, Math.min(0.5, 0.22 * k), 0.025 + Math.random() * 0.04, 0.8 + Math.random() * 1.2);
   const snap = () => noiseBurst(800 + Math.random() * 900, 2.2, 0.32, 0.06 + Math.random() * 0.04, 0.6 + Math.random() * 0.5);
   const squelch = s => { noiseBurst(380 + Math.random() * 160, 0.9, Math.min(0.6, 0.3 + 0.3 * s), 0.2, 0.3, 'lowpass'); noiseBurst(900, 1.2, 0.18, 0.09, 0.5); };
+  const hiss = () => { noiseBurst(6200, 0.7, 0.3, 0.33, 1.5, 'highpass'); noiseBurst(3000, 1, 0.18, 0.25, 1); };
   function buzz(ms) { try { if (navigator.vibrate) navigator.vibrate(ms); } catch (_) {} }
 
   // ---------- drawing ----------
@@ -678,9 +867,43 @@ summary { cursor: pointer; font-size: 14px; }
       c.moveTo(g.x + g.r, g.y); c.ellipse(g.x, g.y, g.r, g.r * stretch, 0, 0, Math.PI * 2);
     }
   }
+  // paint a list of pinned marks (dots, soft blushes, lines, filled shapes, lettering) at wherever the mesh has carried them
+  function paint(c, list) {
+    for (const d of list) {
+      if (d.k === 'dot') {
+        const q = at(d.an);
+        c.beginPath(); c.ellipse(q.x, q.y, d.rx * unit, d.ry * unit, d.rot || 0, 0, Math.PI * 2);
+        c.fillStyle = d.c; c.fill();
+      } else if (d.k === 'soft') {
+        const q = at(d.an), r = d.r * unit;
+        const g = c.createRadialGradient(q.x, q.y, 0, q.x, q.y, r);
+        g.addColorStop(0, `rgba(${d.c},${d.a})`); g.addColorStop(1, `rgba(${d.c},0)`);
+        c.fillStyle = g; c.fillRect(q.x - r, q.y - r, r * 2, r * 2);
+      } else if (d.k === 'text') {
+        const q = at(d.an);
+        c.font = `${Math.round(d.size * unit)}px "ZCOOL KuaiLe", "PingFang SC", sans-serif`;
+        c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = d.c; c.fillText(d.text, q.x, q.y);
+      } else {
+        c.beginPath();
+        d.ans.forEach((an, i) => { const q = at(an); if (i) c.lineTo(q.x, q.y); else c.moveTo(q.x, q.y); });
+        if (d.k === 'poly') { c.closePath(); c.fillStyle = d.c; c.fill(); }
+        else {
+          if (d.close) c.closePath();
+          c.lineCap = 'round'; c.lineJoin = 'round'; c.lineWidth = Math.max(1, d.w * unit); c.strokeStyle = d.c; c.stroke();
+        }
+      }
+    }
+  }
+  function bubble(c, x, y, r, a) {
+    c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2);
+    c.fillStyle = `rgba(255,255,255,${0.16 * a})`; c.fill();
+    c.lineWidth = 1; c.strokeStyle = `rgba(255,255,255,${0.85 * a})`; c.stroke();
+    c.beginPath(); c.arc(x - r * 0.35, y - r * 0.35, Math.max(0.6, r * 0.22), 0, Math.PI * 2);
+    c.fillStyle = `rgba(255,255,255,${0.9 * a})`; c.fill();
+  }
 
   function draw() {
-    const fl = TOYS[toyKey];
+    const fl = look;
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
     ctx.clearRect(0, 0, W, H);
 
@@ -692,16 +915,21 @@ summary { cursor: pointer; font-size: 14px; }
     ctx.fillStyle = sg; ctx.beginPath(); ctx.arc(0, 0, R * 1.2, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
 
-    // the filling: matte dough, lit from the upper left
+    // the filling: matte dough lit from the upper left, or a clear fizzy drink
     outline(ctx);
     const bg = ctx.createRadialGradient(cx - R * 0.3, cy - R * 0.35, R * 0.05, cx, cy, R * 1.5);
-    bg.addColorStop(0, hsl(fl.paste, 6)); bg.addColorStop(0.55, hsl(fl.paste)); bg.addColorStop(1, hsl(fl.paste, -16));
+    const fa = fl.fizz ? 0.82 : 1;
+    bg.addColorStop(0, hsl(fl.paste, fl.fizz ? 14 : 6, fa)); bg.addColorStop(0.55, hsl(fl.paste, 0, fa)); bg.addColorStop(1, hsl(fl.paste, -16, fa));
     ctx.fillStyle = bg; ctx.fill();
     ctx.lineWidth = 1.5; ctx.strokeStyle = hsl(fl.paste, -22, 0.5); ctx.stroke();
 
     ctx.save(); outline(ctx); ctx.clip();
-    if (!pastePattern) pastePattern = ctx.createPattern(pasteTex, 'repeat');
-    ctx.globalAlpha = 0.2; ctx.fillStyle = pastePattern; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1;
+    if (!fl.fizz) {
+      if (!pastePattern) pastePattern = ctx.createPattern(pasteTex, 'repeat');
+      ctx.globalAlpha = 0.2; ctx.fillStyle = pastePattern; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1;
+    }
+    paint(ctx, innerDecals);                           // whatever floats inside (lemon slices, popping pearls)
+    for (const b of bubbles) bubble(ctx, b.x, b.y, b.r, 1);
     for (const d of dimples) {                         // thumbprints: shaded on the lit side, bright on the far rim
       const q = pts[d.v], x = q.x + d.ox, y = q.y + d.oy;
       let g = ctx.createRadialGradient(x - d.r * 0.2, y - d.r * 0.2, 0, x, y, d.r);
@@ -711,13 +939,13 @@ summary { cursor: pointer; font-size: 14px; }
       g.addColorStop(0, `rgba(255,255,255,${0.3 * d.life})`); g.addColorStop(1, 'rgba(255,255,255,0)');
       ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x + d.r * 0.45, y + d.r * 0.45, d.r * 0.6, 0, Math.PI * 2); ctx.fill();
     }
-    if (blobs.length) {                                // runny centre showing in the wounds
+    if (blobs.length && !fl.fizz) {                    // runny centre showing in the wounds
       const list = blobs.map(b => ({ x: pts[b.v].x + b.ox, y: pts[b.v].y + b.oy, r: b.r }));
       gooPath(ctx, list); ctx.fillStyle = hsl(fl.goo); ctx.fill();
       ctx.fillStyle = 'rgba(255,255,255,0.45)';
       for (const g of list) if (g.r > 11) { ctx.beginPath(); ctx.ellipse(g.x - g.r * 0.3, g.y - g.r * 0.35, g.r * 0.28, g.r * 0.18, -0.6, 0, Math.PI * 2); ctx.fill(); }
     }
-    // the shell sits proud of the filling: it throws a shadow onto the dough along every broken edge
+    // the shell sits proud of the filling: it throws a shadow onto it along every broken edge
     ctx.fillStyle = 'rgba(25,12,35,0.3)';
     if (shellCount) {
       ctx.save(); ctx.translate(2.5, 3.5); ctx.beginPath();
@@ -733,10 +961,12 @@ summary { cursor: pointer; font-size: 14px; }
     drawShell(fl);
 
     // broken shell still stuck to the filling
+    ctx.globalAlpha = fl.shellAlpha;
     for (const s of stuck) {
       const q = pts[s.v];
       ctx.save(); ctx.translate(q.x, q.y); drawShard(fl, s); ctx.restore();
     }
+    ctx.globalAlpha = 1;
 
     // depth under each finger
     ctx.save(); outline(ctx); ctx.clip();
@@ -756,19 +986,29 @@ summary { cursor: pointer; font-size: 14px; }
 
     // squirted filling
     if (goo.length) {
-      gooPath(ctx, goo); ctx.fillStyle = hsl(fl.goo); ctx.fill();
+      gooPath(ctx, goo); ctx.fillStyle = hsl(fl.goo, 0, fl.fizz ? 0.6 : 1); ctx.fill();
       ctx.fillStyle = 'rgba(255,255,255,0.5)';
       for (const g of goo) if (g.r > 8) { ctx.beginPath(); ctx.ellipse(g.x - g.r * 0.3, g.y - g.r * 0.35, g.r * 0.26, g.r * 0.17, -0.6, 0, Math.PI * 2); ctx.fill(); }
     }
+    for (const b of pops) bubble(ctx, b.x, b.y, b.r, Math.min(1, b.life * 2));
 
     // falling shell
     for (const s of shards) {
-      ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(s.rot); ctx.globalAlpha = Math.max(0, Math.min(1, s.life * 1.6));
+      ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(s.rot); ctx.globalAlpha = Math.max(0, Math.min(1, s.life * 1.6)) * fl.shellAlpha;
       drawShard(fl, s);
       ctx.restore();
     }
     ctx.fillStyle = hsl(fl.shell, 38);
     for (const d of dust) { ctx.globalAlpha = Math.max(0, d.life); ctx.beginPath(); ctx.arc(d.x, d.y, d.s, 0, Math.PI * 2); ctx.fill(); }
+    ctx.globalAlpha = 1;
+
+    // sugar beans earned, drifting up
+    ctx.font = '18px "ZCOOL KuaiLe", "PingFang SC", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    for (const f of floats) {
+      ctx.globalAlpha = Math.min(1, f.life * 2);
+      ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(60,35,0,0.75)'; ctx.strokeText(f.text, f.x, f.y);
+      ctx.fillStyle = '#ffd24a'; ctx.fillText(f.text, f.x, f.y);
+    }
     ctx.globalAlpha = 1;
   }
 
@@ -796,25 +1036,9 @@ summary { cursor: pointer; font-size: 14px; }
 
     // whatever is painted on the shell: only ever drawn over shell that is still there
     sctx.globalCompositeOperation = 'source-atop';
-    for (const d of decals) {
-      if (d.k === 'dot') {
-        const q = at(d.an);
-        sctx.beginPath(); sctx.ellipse(q.x, q.y, d.rx * unit, d.ry * unit, d.rot || 0, 0, Math.PI * 2);
-        sctx.fillStyle = d.c; sctx.fill();
-      } else if (d.k === 'soft') {
-        const q = at(d.an), r = d.r * unit;
-        const g = sctx.createRadialGradient(q.x, q.y, 0, q.x, q.y, r);
-        g.addColorStop(0, `rgba(${d.c},${d.a})`); g.addColorStop(1, `rgba(${d.c},0)`);
-        sctx.fillStyle = g; sctx.fillRect(q.x - r, q.y - r, r * 2, r * 2);
-      } else {
-        sctx.beginPath();
-        d.ans.forEach((an, i) => { const q = at(an); if (i) sctx.lineTo(q.x, q.y); else sctx.moveTo(q.x, q.y); });
-        if (d.close) sctx.closePath();
-        sctx.lineCap = 'round'; sctx.lineJoin = 'round'; sctx.lineWidth = Math.max(1, d.w * unit); sctx.strokeStyle = d.c; sctx.stroke();
-      }
-    }
+    paint(sctx, decals);
 
-    // broken plates no longer lie flush: each one tilts its own way and takes the light differently
+    // broken pieces no longer lie flush: each one tilts its own way and takes the light differently
     const facets = [[], [], [], [], []];
     for (const t of tris) {
       if (!t.shell) continue;
@@ -845,21 +1069,22 @@ summary { cursor: pointer; font-size: 14px; }
 
     // cracks follow the edges that gave way. Bent wax goes white around a crack, and the crack itself
     // is a groove: shadowed on one lip, lit on the other, with the filling showing at the bottom
-    const cracksPath = new Path2D(), fresh = new Path2D(), nowT = performance.now();
+    const cracksPath = new Path2D(), freshPath = new Path2D(), nowT = performance.now();
     let anyFresh = false;
     for (const e of edges) {
       if (!e.cracked || e.t.length < 2) continue;
       if (!tris[e.t[0]].shell || !tris[e.t[1]].shell) continue;
       const a = pts[e.a], b = pts[e.b];
       cracksPath.moveTo(a.x, a.y); cracksPath.lineTo(b.x, b.y);
-      if (nowT - e.born < 170) { fresh.moveTo(a.x, a.y); fresh.lineTo(b.x, b.y); anyFresh = true; }
+      if (nowT - e.born < 170) { freshPath.moveTo(a.x, a.y); freshPath.lineTo(b.x, b.y); anyFresh = true; }
     }
+    const thick = 1 + (cur.layers - 1) * 0.35;         // a thicker shell shows wider grooves and a fatter lip
     sctx.lineCap = 'round'; sctx.lineJoin = 'round';
-    sctx.lineWidth = 5; sctx.strokeStyle = 'rgba(255,255,255,0.1)'; sctx.stroke(cracksPath);
-    sctx.save(); sctx.translate(0.7, 0.9); sctx.lineWidth = 1.5; sctx.strokeStyle = 'rgba(0,0,0,0.55)'; sctx.stroke(cracksPath); sctx.restore();
-    sctx.lineWidth = 1.1; sctx.strokeStyle = hsl(fl.crack, 0, 0.9); sctx.stroke(cracksPath);
+    sctx.lineWidth = 5 * thick; sctx.strokeStyle = 'rgba(255,255,255,0.1)'; sctx.stroke(cracksPath);
+    sctx.save(); sctx.translate(0.7, 0.9); sctx.lineWidth = 1.5 * thick; sctx.strokeStyle = 'rgba(0,0,0,0.55)'; sctx.stroke(cracksPath); sctx.restore();
+    sctx.lineWidth = 1.1 * thick; sctx.strokeStyle = hsl(fl.crack, 0, 0.9); sctx.stroke(cracksPath);
     sctx.save(); sctx.translate(-0.6, -0.7); sctx.lineWidth = 0.7; sctx.strokeStyle = 'rgba(255,255,255,0.5)'; sctx.stroke(cracksPath); sctx.restore();
-    if (anyFresh) { sctx.lineWidth = 3.5; sctx.strokeStyle = 'rgba(255,255,255,0.8)'; sctx.stroke(fresh); }   // a new crack flashes as it opens
+    if (anyFresh) { sctx.lineWidth = 3.5; sctx.strokeStyle = 'rgba(255,255,255,0.8)'; sctx.stroke(freshPath); }   // a new crack flashes as it opens
 
     // where the shell has broken away you see its cut edge: a pale lip of wax
     sctx.beginPath();
@@ -868,10 +1093,10 @@ summary { cursor: pointer; font-size: 14px; }
       if (tris[e.t[0]].shell === tris[e.t[1]].shell) continue;
       sctx.moveTo(pts[e.a].x, pts[e.a].y); sctx.lineTo(pts[e.b].x, pts[e.b].y);
     }
-    sctx.lineWidth = 2.6; sctx.strokeStyle = hsl(fl.shell, 36, 0.9); sctx.stroke();
+    sctx.lineWidth = 2.6 * thick; sctx.strokeStyle = hsl(fl.shell, 36, 0.9); sctx.stroke();
     sctx.globalCompositeOperation = 'source-over';
 
-    ctx.globalAlpha = coat;
+    ctx.globalAlpha = coat * fl.shellAlpha;
     ctx.drawImage(shellCv, 0, 0, W, H);
     ctx.globalAlpha = 1;
   }
@@ -889,6 +1114,16 @@ summary { cursor: pointer; font-size: 14px; }
       for (const d of dust) { d.vy += 0.12; d.x += d.vx; d.y += d.vy; d.life -= 0.04; }
       shards = shards.filter(s => s.life > 0 && s.y < H + 40);
       dust = dust.filter(d => d.life > 0);
+      // bubbles in the drink rise, faster while it is being squeezed
+      const rush = fingers.size ? 3 : 1;
+      for (const b of bubbles) {
+        b.y -= b.v * rush; b.x += Math.sin(now / 300 + b.r * 7) * 0.3;
+        if (b.y < cy - R * 1.1) { b.y = cy + R * 1.05; b.x = cx + rnd(-R, R); }
+      }
+      for (const b of pops) { b.vy -= 0.04; b.x += b.vx + Math.sin(now / 120 + b.r) * 0.4; b.y += b.vy; b.vx *= 0.96; b.life -= 0.016; }
+      pops = pops.filter(b => b.life > 0);
+      for (const f of floats) { f.y -= 0.9; f.life -= 0.02; }
+      floats = floats.filter(f => f.life > 0);
       if (coat < 1) coat = Math.min(1, coat + 0.035);
       acc -= 16.6; steps++;
     }
@@ -910,6 +1145,160 @@ summary { cursor: pointer; font-size: 14px; }
     build();
   }
 
+  // a fizzy drink bursts into a spray of bubbles instead of a squelch of filling
+  function fizzPop(x, y, s) {
+    const n = Math.round(14 + 16 * s);
+    for (let i = 0; i < n; i++) pops.push({ x: x + rnd(-14, 14), y: y + rnd(-10, 10), vx: rnd(-1.6, 1.6), vy: rnd(-3.2, -0.6), r: rnd(1.5, 6), life: rnd(0.6, 1.1) });
+    if (pops.length > 160) pops.splice(0, pops.length - 160);
+  }
+
+  // ---------- the shop: beans, dipping, shelf, unlocks, daily stamp ----------
+  function earn(n, x, y) {
+    if (!n) return;
+    S.coins += n; save();
+    $('coins').textContent = S.coins;
+    if (x !== undefined) floats.push({ x: x + rnd(-8, 8), y, text: '+' + n, life: 1 });
+    renderCards();
+  }
+
+  function updateActions() {
+    cur.price = priceOf(S.toy, S.coat, cur.layers);
+    const dip = $('dip'), sell = $('sell');
+    dip.textContent = cur.layers >= 3 ? '已裹满 3 层' : `再裹一层（${cur.layers}/3）`;
+    dip.disabled = cur.touched || cur.layers >= 3;
+    const full = S.shelf.length >= SHELF_SLOTS;
+    sell.textContent = cur.touched ? '捏过的卖不了' : (full ? '货架满了' : `上架卖 +${cur.price}`);
+    sell.disabled = cur.touched || full;
+    $('tag').innerHTML = `<b>${TOYS[S.toy].name}</b> · ${COATS[S.coat].name}脆皮 · ${cur.layers} 层`;
+  }
+
+  // start a fresh toy of the chosen food and coating on the workbench
+  function make() { build(true); coat = 0; save(); renderCards(); }
+
+  $('dip').addEventListener('click', () => {
+    if (cur.touched || cur.layers >= 3) return;
+    initAudio();
+    cur.layers++;
+    for (const e of edges) e.thr = edgeThr(e);
+    for (const p of pts) { p.x = cx + (p.x - cx) * 0.96; p.y = cy + (p.y - cy) * 0.96; }   // the dip: a little wobble while the new layer sets
+    coat = 0;
+    updateActions();
+  });
+  $('sell').addEventListener('click', () => {
+    if (cur.touched || S.shelf.length >= SHELF_SLOTS) return;
+    S.shelf.push({ toy: S.toy, coat: S.coat, layers: cur.layers, price: cur.price, readyAt: Date.now() + sellMs(S.toy, cur.layers) });
+    make(); renderShelf();
+  });
+  $('recoat').addEventListener('click', () => { initAudio(); make(); });
+
+  function renderCards() {
+    const fill = (box, keys, table, owned, active, pick) => {
+      box.textContent = '';
+      for (const key of keys) {
+        const item = table[key], has = owned.includes(key);
+        const b = document.createElement('button');
+        b.type = 'button'; b.id = (table === TOYS ? 't-' : 'c-') + key;
+        b.className = 'card' + (has ? '' : ' locked') + (key === active ? ' on' : '') + (!has && S.coins < item.price ? ' poor' : '');
+        const sw = document.createElement('span'); sw.className = 'swatch';
+        const a = item.shell ? hsl(item.shell) : 'var(--panel)', c = item.paste ? hsl(item.paste) : (item.shell ? hsl(item.shell, 12) : 'var(--line)');
+        sw.style.background = `linear-gradient(135deg, ${a} 0 52%, ${c} 52% 100%)`;
+        const name = document.createElement('span'); name.className = 'name'; name.textContent = item.name;
+        const sub = document.createElement('span'); sub.className = 'sub';
+        if (has) sub.textContent = key === active ? '使用中' : '已拥有';
+        else { const bean = document.createElement('span'); bean.className = 'bean'; const cost = document.createElement('span'); cost.className = 'cost'; cost.textContent = item.price; sub.append(bean, cost); }
+        b.append(sw, name, sub);
+        b.addEventListener('click', () => {
+          if (!has) {
+            if (S.coins < item.price) { sub.textContent = `还差 ${item.price - S.coins}`; return; }
+            S.coins -= item.price; owned.push(key); $('coins').textContent = S.coins;
+          }
+          pick(key); initAudio(); make();
+        });
+        box.appendChild(b);
+      }
+    };
+    fill($('g-toys'), TOY_KEYS, TOYS, S.toys, S.toy, k => { S.toy = k; });
+    fill($('g-coats'), COAT_KEYS, COATS, S.coats, S.coat, k => { S.coat = k; });
+  }
+
+  function renderShelf() {
+    const box = $('g-shelf'), now = Date.now();
+    box.textContent = '';
+    let ready = 0;
+    for (let i = 0; i < SHELF_SLOTS; i++) {
+      const it = S.shelf[i], slot = document.createElement('div');
+      slot.className = 'slot' + (it ? ' full' : '');
+      if (!it) slot.textContent = '空位';
+      else {
+        const sw = document.createElement('span'); sw.className = 'swatch';
+        const dipped = it.coat !== 'plain';
+        sw.style.background = `linear-gradient(135deg, ${hsl(dipped ? COATS[it.coat].shell : TOYS[it.toy].shell)} 0 52%, ${hsl(TOYS[it.toy].paste)} 52% 100%)`;
+        const name = document.createElement('span'); name.textContent = `${COATS[it.coat].name}${TOYS[it.toy].name} · ${it.layers} 层`;
+        slot.append(sw, name);
+        if (now >= it.readyAt) {
+          ready++;
+          const b = document.createElement('button'); b.type = 'button'; b.className = 'btn primary'; b.textContent = `收钱 +${it.price}`;
+          b.addEventListener('click', () => { S.shelf.splice(S.shelf.indexOf(it), 1); earn(it.price); renderShelf(); updateActions(); });
+          slot.appendChild(b);
+        } else {
+          const wait = document.createElement('span'); wait.textContent = `等客人 ${Math.ceil((it.readyAt - now) / 1000)} 秒`;
+          slot.appendChild(wait);
+        }
+      }
+      box.appendChild(slot);
+    }
+    $('pip-shelf').hidden = !ready;
+  }
+
+  const dayKey = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  function signState() {
+    const today = dayKey(new Date()), y = new Date(); y.setDate(y.getDate() - 1);
+    const done = S.sign.last === today;
+    const alive = done || S.sign.last === dayKey(y);      // the streak survives only if yesterday was stamped
+    const streak = alive ? S.sign.streak : 0;
+    const got = streak % 7 === 0 && done && streak > 0 ? 7 : streak % 7;   // stamps collected in the current week
+    return { today, done, streak, got };
+  }
+  function renderSign() {
+    const st = signState(), box = $('g-days');
+    box.textContent = '';
+    SIGN.forEach((n, i) => {
+      const d = document.createElement('div');
+      d.className = 'day' + (i < st.got ? ' got' : '') + (!st.done && i === st.got % 7 ? ' next' : '');
+      const label = document.createElement('span'); label.textContent = i < st.got ? '已领' : `第 ${i + 1} 天`;
+      const amount = document.createElement('b'); amount.textContent = '+' + n;
+      d.append(label, amount); box.appendChild(d);
+    });
+    const next = SIGN[st.got % 7];
+    $('claim').disabled = st.done;
+    $('claim').textContent = st.done ? '今天已领，明天再来' : `领取今天的 ${next} 糖豆`;
+    $('pip-sign').hidden = st.done;
+    $('signBtn').textContent = st.done ? '已签到' : '签到';
+  }
+  $('claim').addEventListener('click', () => {
+    const st = signState();
+    if (st.done) return;
+    const reward = SIGN[st.got % 7];
+    S.sign = { last: st.today, streak: st.streak + 1 };
+    earn(reward); renderSign();
+  });
+
+  function showTab(name) {
+    for (const t of document.querySelectorAll('.tab')) t.setAttribute('aria-selected', String(t.dataset.tab === name));
+    for (const n of ['toys', 'coats', 'shelf', 'sign']) $('p-' + n).hidden = n !== name;
+    if (name === 'shelf') renderShelf();
+    if (name === 'sign') renderSign();
+  }
+  for (const t of document.querySelectorAll('.tab')) t.addEventListener('click', () => showTab(t.dataset.tab));
+  $('signBtn').addEventListener('click', () => showTab('sign'));
+  setInterval(renderShelf, 1000);
+
+  $('reset').addEventListener('click', () => {
+    try { localStorage.removeItem(SAVE_KEY); } catch (_) {}
+    S = fresh(); $('coins').textContent = S.coins;
+    make(); renderShelf(); renderSign();
+  });
+
   // ---------- input ----------
   function pos(ev) { const r = cv.getBoundingClientRect(); return { x: ev.clientX - r.left, y: ev.clientY - r.top }; }
   cv.addEventListener('pointerdown', ev => {
@@ -930,24 +1319,6 @@ summary { cursor: pointer; font-size: 14px; }
   cv.addEventListener('lostpointercapture', lift);
   cv.addEventListener('contextmenu', ev => ev.preventDefault());
 
-  // "another one" hands over a different toy each time
-  $('recoat').addEventListener('click', () => {
-    initAudio();
-    const others = TOY_KEYS.filter(k => k !== toyKey);
-    toyKey = others[(Math.random() * others.length) | 0];
-    $('f-' + toyKey).checked = true;
-    build(true); coat = 0;
-  });
-  for (const key of TOY_KEYS) {
-    const label = document.createElement('label');
-    const input = document.createElement('input');
-    input.type = 'radio'; input.name = 'toy'; input.id = 'f-' + key; input.value = key; input.checked = key === toyKey;
-    const dot = document.createElement('span');
-    dot.className = 'dot'; dot.style.background = hsl(TOYS[key].shell);
-    label.append(input, dot, TOYS[key].name);
-    input.addEventListener('change', () => { if (input.checked) { toyKey = key; build(true); coat = 0; } });
-    $('toys').appendChild(label);
-  }
   for (const key of ['brittle', 'soft', 'rebound', 'ooze', 'finger']) {
     const el = $('k-' + key);
     const sync = () => { P[key] = +el.value; $('o-' + key).textContent = el.value; };
@@ -960,6 +1331,8 @@ summary { cursor: pointer; font-size: 14px; }
   $('sound').addEventListener('change', ev => { soundOn = ev.target.checked; });
   soundOn = $('sound').checked;
 
+  $('coins').textContent = S.coins;
+  renderCards(); renderShelf(); renderSign();
   if (window.ResizeObserver) new ResizeObserver(resize).observe(cv); else window.addEventListener('resize', resize);
   resize();
   requestAnimationFrame(frame);
