@@ -101,11 +101,8 @@ summary { cursor: pointer; font-size: 14px; }
   </div>
 
   <div class="row">
-    <fieldset class="flavors">
+    <fieldset class="flavors" id="toys">
       <legend>款式</legend>
-      <label><input type="radio" name="flavor" id="f-berry" value="berry" checked><span class="dot" style="background:hsl(228 45% 24%)"></span>蓝莓</label>
-      <label><input type="radio" name="flavor" id="f-egg" value="egg"><span class="dot" style="background:hsl(32 50% 88%)"></span>鸡蛋</label>
-      <label><input type="radio" name="flavor" id="f-mango" value="mango"><span class="dot" style="background:hsl(36 96% 57%)"></span>芒果</label>
     </fieldset>
     <label class="sound"><input type="checkbox" id="sound" checked>声音</label>
   </div>
@@ -131,16 +128,89 @@ summary { cursor: pointer; font-size: 14px; }
   const sctx = shellCv.getContext('2d');
   const $ = id => document.getElementById(id);
 
-  // each look: hard shell, the doughy filling under it, the runny centre, and the crack line colour
-  const FLAVORS = {
-    berry: { shell: [228, 45, 24], paste: [268, 48, 80], goo: [286, 55, 46], crack: [268, 55, 84] },
-    egg:   { shell: [32, 50, 88],  paste: [50, 45, 95],  goo: [43, 100, 52], crack: [28, 35, 48] },
-    mango: { shell: [36, 96, 57],  paste: [47, 92, 80],  goo: [28, 100, 52], crack: [20, 75, 34] },
-  };
   const hsl = (c, dl = 0, a = 1) => `hsla(${c[0]}, ${c[1]}%, ${Math.max(0, Math.min(100, c[2] + dl))}%, ${a})`;
-  let flavor = 'berry';
+
+  // ---------- the toys ----------
+  // Outlines are drawn in unit coordinates around the toy's centre (y points down). A toy can be
+  // several overlapping outlines (a head plus two ears); the silhouette is their union.
+  const param = (fn, n = 160) => { const p = []; for (let i = 0; i < n; i++) p.push(fn(i / n * Math.PI * 2)); return p; };
+  const oval = (rx, ry, ox = 0, oy = 0) => param(t => [ox + rx * Math.cos(t), oy + ry * Math.sin(t)], 72);
+  const starPts = (x, y, ro, ri, squash = 1) => { const p = []; for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2 - Math.PI / 2, r = i % 2 ? ri : ro; p.push([x + Math.cos(a) * r, y + Math.sin(a) * r * squash]); } return p; };
+  const INK = 'rgba(40,24,30,0.92)';
+  const mirror = list => list.concat(list.map(d => ({ ...d, x: d.x === undefined ? undefined : -d.x, rot: d.rot ? -d.rot : d.rot, pts: d.pts ? d.pts.map(([x, y]) => [-x, y]) : undefined })));
+
+  // each toy: hard shell, the doughy filling under it, the runny centre, the crack line colour,
+  // its outline, and what is painted on the shell (the paint breaks away with the shell)
+  const TOYS = {
+    berry: { name: '蓝莓', shell: [228, 45, 24], paste: [268, 48, 80], goo: [286, 55, 46], crack: [268, 55, 84],
+      shape: () => [oval(1, 0.94)],
+      deco: () => [{ k: 'dot', x: 0, y: -0.6, rx: 0.2, ry: 0.12, c: 'rgba(8,10,36,0.6)' }, { k: 'line', c: 'rgba(150,165,230,0.75)', w: 0.014, close: true, pts: starPts(0, -0.6, 0.21, 0.1, 0.6) }] },
+    egg: { name: '鸡蛋', shell: [32, 50, 88], paste: [50, 45, 95], goo: [43, 100, 52], crack: [28, 35, 48],
+      shape: () => [param(t => [0.76 * Math.cos(t) * (1 + 0.17 * Math.sin(t)), Math.sin(t)])],
+      deco: () => { const d = []; for (let i = 0; i < 12; i++) { const a = Math.random() * 6.283, r = Math.sqrt(Math.random()) * 0.6; d.push({ k: 'dot', x: Math.cos(a) * r, y: Math.sin(a) * r * 1.2, rx: 0.02 + Math.random() * 0.015, ry: 0.018, c: 'rgba(120,80,50,0.3)' }); } return d; } },
+    mango: { name: '芒果', shell: [40, 96, 58], paste: [47, 92, 80], goo: [28, 100, 52], crack: [20, 75, 34],
+      shape: () => [param(t => { const x = Math.cos(t) * (1 + 0.12 * Math.cos(t)), y = 0.66 * Math.sin(t) + 0.16 * Math.cos(t) * Math.cos(t) - 0.08; return [x * 0.94 + y * 0.34, -x * 0.34 + y * 0.94]; })],
+      deco: () => [{ k: 'soft', x: 0.35, y: -0.3, r: 0.75, c: '250,70,40', a: 0.6 }, { k: 'soft', x: -0.6, y: 0.25, r: 0.5, c: '120,170,40', a: 0.4 }] },
+    strawberry: { name: '草莓', shell: [352, 80, 50], paste: [345, 85, 88], goo: [350, 85, 44], crack: [345, 90, 90],
+      shape: () => [param(t => { const c = Math.cos(t), s = Math.sin(t); return s > 0 ? [0.95 * c * (1 - 0.5 * s * s), 1.08 * s - 0.15] : [0.95 * c, 0.7 * s - 0.15]; })],
+      deco: () => {
+        const d = [];
+        [[-0.38, [-0.55, -0.18, 0.18, 0.55]], [-0.12, [-0.68, -0.34, 0, 0.34, 0.68]], [0.14, [-0.5, -0.17, 0.17, 0.5]], [0.4, [-0.32, 0, 0.32]], [0.64, [-0.14, 0.14]]]
+          .forEach(([y, xs]) => xs.forEach(x => d.push({ k: 'dot', x, y, rx: 0.03, ry: 0.048, c: 'rgba(255,226,120,0.95)' })));
+        [20, 55, 90, 125, 160].forEach(deg => { const a = deg * Math.PI / 180; d.push({ k: 'dot', x: Math.cos(a) * 0.22, y: -0.86 + Math.sin(a) * 0.22, rx: 0.22, ry: 0.09, rot: a, c: 'hsl(125, 55%, 34%)' }); });
+        return d;
+      } },
+    heart: { name: '爱心', shell: [338, 85, 60], paste: [24, 90, 91], goo: [330, 90, 52], crack: [338, 85, 93],
+      shape: () => [param(t => [16 * Math.pow(Math.sin(t), 3) / 17, -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)) / 17 + 0.1])],
+      deco: () => [{ k: 'soft', x: -0.4, y: -0.4, r: 0.3, c: '255,255,255', a: 0.5 }] },
+    star: { name: '星星', shell: [48, 98, 56], paste: [52, 95, 88], goo: [32, 100, 54], crack: [30, 75, 34],
+      shape: () => [param(t => { const r = 0.68 + 0.3 * Math.cos(5 * (t + Math.PI / 2)); return [r * Math.cos(t), r * Math.sin(t)]; }, 220)],
+      deco: () => mirror([{ k: 'dot', x: 0.2, y: -0.02, rx: 0.055, ry: 0.07, c: INK }, { k: 'soft', x: 0.36, y: 0.1, r: 0.15, c: '255,90,90', a: 0.5 }])
+        .concat([{ k: 'line', c: INK, w: 0.02, pts: [[-0.1, 0.12], [0, 0.2], [0.1, 0.12]] }]) },
+    cat: { name: '猫猫', shell: [30, 85, 60], paste: [36, 75, 90], goo: [14, 90, 60], crack: [22, 65, 28],
+      shape: () => [oval(1, 0.84, 0, 0.1), [[-0.92, -0.2], [-0.8, -0.98], [-0.22, -0.6]], [[0.92, -0.2], [0.8, -0.98], [0.22, -0.6]]],
+      deco: () => mirror([
+        { k: 'dot', x: 0.6, y: -0.56, rx: 0.1, ry: 0.15, rot: 0.3, c: 'rgba(255,175,175,0.9)' },
+        { k: 'line', c: 'rgba(150,70,10,0.7)', w: 0.03, pts: [[0.13, -0.6], [0.11, -0.4]] },
+        { k: 'dot', x: 0.34, y: 0.02, rx: 0.07, ry: 0.1, c: INK },
+        { k: 'line', c: 'rgba(40,24,30,0.6)', w: 0.011, pts: [[0.5, 0.24], [0.86, 0.17]] },
+        { k: 'line', c: 'rgba(40,24,30,0.6)', w: 0.011, pts: [[0.5, 0.32], [0.86, 0.38]] },
+      ]).concat([
+        { k: 'line', c: 'rgba(150,70,10,0.7)', w: 0.03, pts: [[0, -0.64], [0, -0.42]] },
+        { k: 'dot', x: 0, y: 0.2, rx: 0.05, ry: 0.035, c: 'rgba(225,105,120,1)' },
+        { k: 'line', c: INK, w: 0.018, pts: [[-0.14, 0.27], [-0.07, 0.33], [0, 0.24], [0.07, 0.33], [0.14, 0.27]] },
+      ]) },
+    bear: { name: '小熊', shell: [25, 45, 40], paste: [32, 55, 82], goo: [40, 95, 55], crack: [32, 60, 86],
+      shape: () => [oval(0.9, 0.86, 0, 0.1), oval(0.32, 0.32, -0.66, -0.62), oval(0.32, 0.32, 0.66, -0.62)],
+      deco: () => mirror([
+        { k: 'dot', x: 0.66, y: -0.62, rx: 0.16, ry: 0.16, c: 'rgba(240,200,160,0.9)' },
+        { k: 'dot', x: 0.3, y: -0.02, rx: 0.06, ry: 0.07, c: INK },
+      ]).concat([
+        { k: 'dot', x: 0, y: 0.32, rx: 0.3, ry: 0.22, c: 'rgba(245,220,185,0.96)' },
+        { k: 'dot', x: 0, y: 0.22, rx: 0.09, ry: 0.06, c: INK },
+        { k: 'line', c: INK, w: 0.018, pts: [[0, 0.28], [0, 0.38]] },
+        { k: 'line', c: INK, w: 0.018, pts: [[-0.1, 0.42], [0, 0.38], [0.1, 0.42]] },
+      ]) },
+  };
+  const TOY_KEYS = Object.keys(TOYS);
+  let toyKey = TOY_KEYS[(Math.random() * TOY_KEYS.length) | 0];
+  let decals = [], unit = 1;
+
+  // how far the silhouette reaches from the centre in a given direction (the farthest outline wins)
+  function rayRadius(polys, a) {
+    const dx = Math.cos(a), dy = Math.sin(a);
+    let best = 0;
+    for (const poly of polys) for (let i = 0; i < poly.length; i++) {
+      const p = poly[i], q = poly[(i + 1) % poly.length];
+      const ex = q[0] - p[0], ey = q[1] - p[1], den = dx * ey - dy * ex;
+      if (Math.abs(den) < 1e-9) continue;
+      const s = (p[0] * ey - p[1] * ex) / den, u = (p[0] * dy - p[1] * dx) / den;
+      if (s > best && u >= 0 && u <= 1) best = s;
+    }
+    return best;
+  }
   const P = { brittle: 6, soft: 5, rebound: 1, ooze: 6, finger: 5 };
-  const K = 11;                      // rings in the mesh
+  const K = 12;                      // rings in the mesh
 
   let W = 0, H = 0, DPR = 1, R = 0, cx = 0, cy = 0, c0 = { x: 0, y: 0 };
   let pts = [], edges = [], tris = [], boundary = [], vEdges = [], vTris = [];
@@ -155,10 +225,25 @@ summary { cursor: pointer; font-size: 14px; }
   const mk = (x, y) => ({ x, y, px: x, py: y, hx: x, hy: y, ox: x, oy: y, bare: false });
   function area(a, b, c) { return (b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y); }   // twice the signed area
 
-  function build() {
+  function build(wobble) {
     pts = []; edges = []; tris = []; boundary = [];
-    R = W * 0.33; cx = W / 2; cy = H * 0.48;
-    const rx = R, ry = R * 0.92, ringStart = [0];
+    R = W * 0.34; cx = W / 2; cy = H * 0.48;
+    const toy = TOYS[toyKey], polys = toy.shape();
+    // sample the silhouette around the centre, round off sharp corners, and keep deep notches shallow
+    const nb = 6 * K;
+    let rb = [];
+    for (let i = 0; i < nb; i++) rb.push(rayRadius(polys, i / nb * Math.PI * 2 - Math.PI / 2));
+    for (let pass = 0; pass < 2; pass++) rb = rb.map((r, i) => (rb[(i + nb - 1) % nb] + 2 * r + rb[(i + 1) % nb]) / 4);
+    const maxR = Math.max(...rb);
+    rb = rb.map(r => Math.max(r, maxR * 0.36));
+    unit = R / maxR;
+    const radAt = a => {
+      let u = (a + Math.PI / 2) / (Math.PI * 2) * nb;
+      u = ((u % nb) + nb) % nb;
+      const i0 = Math.floor(u), f = u - i0;
+      return (rb[i0] * (1 - f) + rb[(i0 + 1) % nb] * f) * unit;
+    };
+    const ringStart = [0];
     pts.push(mk(cx, cy));
     for (let k = 1; k <= K; k++) {
       ringStart[k] = pts.length;
@@ -166,7 +251,8 @@ summary { cursor: pointer; font-size: 14px; }
       for (let i = 0; i < n; i++) {
         let a = (i / n) * Math.PI * 2 - Math.PI / 2, f = k / K;
         if (k < K) { a += (Math.random() - 0.5) * 0.5 / k; f += (Math.random() - 0.5) * 0.3 / K; }
-        pts.push(mk(cx + Math.cos(a) * rx * f, cy + Math.sin(a) * ry * f));
+        const r = radAt(a) * f;
+        pts.push(mk(cx + Math.cos(a) * r, cy + Math.sin(a) * r));
       }
     }
     for (let i = 0; i < 6 * K; i++) boundary.push(ringStart[K] + i);
@@ -202,7 +288,30 @@ summary { cursor: pointer; font-size: 14px; }
     edges.forEach((e, ei) => { vEdges[e.a].push(ei); vEdges[e.b].push(ei); });
     c0 = { x: 0, y: 0 };
     for (const p of pts) { c0.x += p.x / pts.length; c0.y += p.y / pts.length; }
-    newToy(false);
+    // paint rides the mesh: every painted point remembers where on the toy it sits
+    const pin = (x, y) => anchor(cx + x * unit, cy + y * unit);
+    decals = toy.deco().map(d => d.k === 'line' ? { ...d, ans: d.pts.map(([x, y]) => pin(x, y)) } : { ...d, an: pin(d.x, d.y) });
+    newToy(!!wobble);
+  }
+
+  // remember a point of the rest shape as barycentric weights of the triangle it sits in
+  function anchor(x, y) {
+    const q = { x, y };
+    let near = tris[0], nd = Infinity;
+    for (const t of tris) {
+      const a = pts[t.a], b = pts[t.b], c = pts[t.c], d = area(a, b, c);
+      const u = area(q, b, c) / d, v = area(a, q, c) / d, w = 1 - u - v;
+      if (u >= -1e-6 && v >= -1e-6 && w >= -1e-6) return { t, u, v, w };
+      const dd = (t.rc.x - x) * (t.rc.x - x) + (t.rc.y - y) * (t.rc.y - y);
+      if (dd < nd) { nd = dd; near = t; }
+    }
+    const a = pts[near.a], b = pts[near.b], c = pts[near.c], d = area(a, b, c);   // just outside the toy: hang it off the nearest triangle
+    const u = area(q, b, c) / d, v = area(a, q, c) / d;
+    return { t: near, u, v, w: 1 - u - v };
+  }
+  function at(an) {
+    const a = pts[an.t.a], b = pts[an.t.b], c = pts[an.t.c];
+    return { x: a.x * an.u + b.x * an.v + c.x * an.w, y: a.y * an.u + b.y * an.v + c.y * an.w };
   }
 
   function addTri(a, b, c) {
@@ -540,7 +649,7 @@ summary { cursor: pointer; font-size: 14px; }
   }
 
   function draw() {
-    const fl = FLAVORS[flavor];
+    const fl = TOYS[toyKey];
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
     ctx.clearRect(0, 0, W, H);
 
@@ -634,8 +743,27 @@ summary { cursor: pointer; font-size: 14px; }
     sctx.fillStyle = shellCol; sctx.fill();
     sctx.lineWidth = 0.7; sctx.strokeStyle = shellCol; sctx.lineJoin = 'round'; sctx.stroke();
 
-    // a hard, glossy skin: dark towards the rim, one sharp highlight
+    // whatever is painted on the shell: only ever drawn over shell that is still there
     sctx.globalCompositeOperation = 'source-atop';
+    for (const d of decals) {
+      if (d.k === 'dot') {
+        const q = at(d.an);
+        sctx.beginPath(); sctx.ellipse(q.x, q.y, d.rx * unit, d.ry * unit, d.rot || 0, 0, Math.PI * 2);
+        sctx.fillStyle = d.c; sctx.fill();
+      } else if (d.k === 'soft') {
+        const q = at(d.an), r = d.r * unit;
+        const g = sctx.createRadialGradient(q.x, q.y, 0, q.x, q.y, r);
+        g.addColorStop(0, `rgba(${d.c},${d.a})`); g.addColorStop(1, `rgba(${d.c},0)`);
+        sctx.fillStyle = g; sctx.fillRect(q.x - r, q.y - r, r * 2, r * 2);
+      } else {
+        sctx.beginPath();
+        d.ans.forEach((an, i) => { const q = at(an); if (i) sctx.lineTo(q.x, q.y); else sctx.moveTo(q.x, q.y); });
+        if (d.close) sctx.closePath();
+        sctx.lineCap = 'round'; sctx.lineJoin = 'round'; sctx.lineWidth = Math.max(1, d.w * unit); sctx.strokeStyle = d.c; sctx.stroke();
+      }
+    }
+
+    // a hard, glossy skin: dark towards the rim, one sharp highlight
     const rim = sctx.createRadialGradient(cx - R * 0.15, cy - R * 0.2, R * 0.3, cx, cy, R * 1.2);
     rim.addColorStop(0, 'rgba(0,0,0,0)'); rim.addColorStop(1, 'rgba(0,0,0,0.42)');
     sctx.fillStyle = rim; sctx.fillRect(0, 0, W, H);
@@ -725,7 +853,24 @@ summary { cursor: pointer; font-size: 14px; }
   cv.addEventListener('lostpointercapture', lift);
   cv.addEventListener('contextmenu', ev => ev.preventDefault());
 
-  $('recoat').addEventListener('click', () => { initAudio(); newToy(true); coat = 0; });
+  // "another one" hands over a different toy each time
+  $('recoat').addEventListener('click', () => {
+    initAudio();
+    const others = TOY_KEYS.filter(k => k !== toyKey);
+    toyKey = others[(Math.random() * others.length) | 0];
+    $('f-' + toyKey).checked = true;
+    build(true); coat = 0;
+  });
+  for (const key of TOY_KEYS) {
+    const label = document.createElement('label');
+    const input = document.createElement('input');
+    input.type = 'radio'; input.name = 'toy'; input.id = 'f-' + key; input.value = key; input.checked = key === toyKey;
+    const dot = document.createElement('span');
+    dot.className = 'dot'; dot.style.background = hsl(TOYS[key].shell);
+    label.append(input, dot, TOYS[key].name);
+    input.addEventListener('change', () => { if (input.checked) { toyKey = key; build(true); coat = 0; } });
+    $('toys').appendChild(label);
+  }
   for (const key of ['brittle', 'soft', 'rebound', 'ooze', 'finger']) {
     const el = $('k-' + key);
     const sync = () => { P[key] = +el.value; $('o-' + key).textContent = el.value; };
@@ -735,10 +880,6 @@ summary { cursor: pointer; font-size: 14px; }
     });
     sync();
   }
-  document.querySelectorAll('input[name="flavor"]').forEach(el => {
-    el.addEventListener('change', () => { if (el.checked) flavor = el.value; });
-    if (el.checked) flavor = el.value;
-  });
   $('sound').addEventListener('change', ev => { soundOn = ev.target.checked; });
   soundOn = $('sound').checked;
 
