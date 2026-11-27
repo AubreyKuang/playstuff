@@ -1,0 +1,656 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>脆皮捏捏</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap">
+<style>
+/* Layout: one column; the toy on a square stage is the page, readouts and tuning sit quietly below it. */
+:root {
+  --bg: #e9f1ee;
+  --stage: #d9e7e1;
+  --panel: #f6faf8;
+  --fg: #1d2b27;
+  --muted: #586c66;
+  --line: #c2d3cc;
+  --accent: #d6336c;
+  --accent-fg: #fff7fa;
+  --display: "ZCOOL KuaiLe", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
+  --body: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121c1a; --stage: #1b2a26; --panel: #1f302b; --fg: #e6f0ec; --muted: #94a9a2;
+    --line: #30443e; --accent: #ff6b9d; --accent-fg: #2a0a16; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121c1a; --stage: #1b2a26; --panel: #1f302b; --fg: #e6f0ec; --muted: #94a9a2;
+  --line: #30443e; --accent: #ff6b9d; --accent-fg: #2a0a16; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  margin: 0;
+  background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.6;
+  padding-block: 20px 32px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 540px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+h1 { font-family: var(--display); font-weight: 400; font-size: 34px; line-height: 1.1; margin: 0; letter-spacing: 0.02em; }
+.sub { color: var(--muted); font-size: 13px; margin: 0; }
+.stage-box { position: relative; background: var(--stage); border-radius: 28px; overflow: hidden; }
+canvas#stage { display: block; width: 100%; aspect-ratio: 1 / 1; max-width: 100%; touch-action: none; cursor: grab; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+canvas#stage:active { cursor: grabbing; }
+.hint {
+  position: absolute; left: 0; right: 0; bottom: 18px; text-align: center; pointer-events: none;
+  font-family: var(--display); font-size: 18px; color: var(--muted);
+}
+.readout { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.meter { flex: 1 1 180px; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.meter-label { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.meter-label b { color: var(--fg); font-weight: 600; }
+.track { height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; }
+.fill { height: 100%; width: 100%; background: var(--accent); border-radius: 4px; }
+button#recoat {
+  font-family: var(--display); font-size: 18px; padding: 10px 20px; border-radius: 999px; border: 0;
+  background: var(--accent); color: var(--accent-fg); cursor: pointer;
+}
+button#recoat:focus-visible, .flavors label:focus-within, input:focus-visible, summary:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+button#recoat.ready { animation: nudge 0.9s ease-in-out infinite; }
+@keyframes nudge { 50% { transform: scale(1.06); } }
+@media (prefers-reduced-motion: reduce) { button#recoat.ready { animation: none; } }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.flavors { display: flex; gap: 8px; align-items: center; border: 0; padding: 0; margin: 0; }
+.flavors legend { float: left; font-size: 13px; color: var(--muted); margin-right: 8px; padding: 0; }
+.flavors label { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); font-size: 13px; cursor: pointer; }
+.flavors input { position: absolute; opacity: 0; pointer-events: none; }
+.flavors label:has(input:checked) { border-color: var(--fg); }
+.dot { width: 12px; height: 12px; border-radius: 50%; }
+.sound { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+details { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 10px 14px; }
+summary { cursor: pointer; font-size: 14px; }
+.knobs { display: grid; grid-template-columns: auto 1fr auto; gap: 8px 12px; align-items: center; margin-top: 10px; font-size: 13px; }
+.knobs input[type="range"] { width: 100%; min-width: 0; accent-color: var(--accent); }
+.knobs output { color: var(--muted); font-variant-numeric: tabular-nums; min-width: 2ch; text-align: right; }
+.note { color: var(--muted); font-size: 12px; margin: 10px 0 0; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>脆皮捏捏</h1>
+    <p class="sub">手感原型：软体形变、脆皮开裂、碎壳掉落</p>
+  </header>
+
+  <div class="stage-box">
+    <canvas id="stage" aria-label="一颗裹着脆皮的捏捏，按住它可以捏碎外壳"></canvas>
+    <div class="hint" id="hint">按住它，用力捏</div>
+  </div>
+
+  <div class="readout">
+    <div class="meter">
+      <div class="meter-label"><span>脆皮还剩 <b id="left">100%</b></span><span>掉落碎片 <b id="flakes">0</b> · 捏完 <b id="cleared">0</b> 颗</span></div>
+      <div class="track"><div class="fill" id="bar"></div></div>
+    </div>
+    <button id="recoat" type="button">重新裹脆皮</button>
+  </div>
+
+  <div class="row">
+    <fieldset class="flavors">
+      <legend>口味</legend>
+      <label><input type="radio" name="flavor" id="f-peach" value="peach" checked><span class="dot" style="background:hsl(350 88% 72%)"></span>蜜桃</label>
+      <label><input type="radio" name="flavor" id="f-grape" value="grape"><span class="dot" style="background:hsl(105 55% 62%)"></span>青提</label>
+      <label><input type="radio" name="flavor" id="f-berry" value="berry"><span class="dot" style="background:hsl(228 85% 74%)"></span>蓝莓</label>
+    </fieldset>
+    <label class="sound"><input type="checkbox" id="sound" checked>咔嚓声</label>
+  </div>
+
+  <details>
+    <summary>调手感</summary>
+    <div class="knobs">
+      <label for="k-brittle">脆度</label><input type="range" id="k-brittle" min="1" max="10" value="6"><output id="o-brittle">6</output>
+      <label for="k-soft">软度</label><input type="range" id="k-soft" min="1" max="10" value="5"><output id="o-soft">5</output>
+      <label for="k-rebound">回弹速度</label><input type="range" id="k-rebound" min="1" max="10" value="4"><output id="o-rebound">4</output>
+      <label for="k-finger">手指大小</label><input type="range" id="k-finger" min="1" max="10" value="5"><output id="o-finger">5</output>
+    </div>
+    <p class="note">脆度越高，壳越容易裂。回弹速度调低就是慢回弹。手机上可以两根手指一起捏。</p>
+  </details>
+</div>
+
+<script>
+(() => {
+  const cv = document.getElementById('stage');
+  const ctx = cv.getContext('2d');
+  const shellCv = document.createElement('canvas');
+  const sctx = shellCv.getContext('2d');
+  const $ = id => document.getElementById(id);
+
+  const FLAVORS = { peach: { h: 350, s: 88, l: 72 }, grape: { h: 105, s: 55, l: 62 }, berry: { h: 228, s: 85, l: 74 } };
+  let flavor = 'peach';
+  const P = { brittle: 6, soft: 5, rebound: 4, finger: 5 };
+  const K = 11;                      // rings in the mesh
+
+  let W = 0, H = 0, DPR = 1, R = 0, cx = 0, cy = 0;
+  let pts = [], edges = [], tris = [], boundary = [], vEdges = [];
+  let loose = [], compsDirty = false;   // shell pieces that have cracked free but not fallen yet
+  let face = null;
+  const fingers = new Map();
+  let shards = [], dust = [];
+  let coat = 1, shellCount = 0, flakedTotal = 0, cleared = 0, doneFlag = false, touched = false;
+  let soundOn = true;
+
+  // ---------- mesh ----------
+  const mk = (x, y) => ({ x, y, px: x, py: y, hx: x, hy: y });
+
+  function build() {
+    pts = []; edges = []; tris = []; boundary = []; shards = []; dust = [];
+    R = W * 0.34; cx = W / 2; cy = H * 0.5;
+    const rx = R, ry = R * 0.9, ringStart = [0];
+    pts.push(mk(cx, cy));
+    for (let k = 1; k <= K; k++) {
+      ringStart[k] = pts.length;
+      const n = 6 * k;
+      for (let i = 0; i < n; i++) {
+        let a = (i / n) * Math.PI * 2 - Math.PI / 2, f = k / K;
+        if (k < K) { a += (Math.random() - 0.5) * 0.5 / k; f += (Math.random() - 0.5) * 0.3 / K; }
+        pts.push(mk(cx + Math.cos(a) * rx * f, cy + Math.sin(a) * ry * f));
+      }
+    }
+    for (let i = 0; i < 6 * K; i++) boundary.push(ringStart[K] + i);
+
+    const A = (k, m, i) => k === 0 ? 0 : ringStart[k] + (m * k + i) % (6 * k);
+    const B = (k, m, j) => ringStart[k + 1] + (m * (k + 1) + j) % (6 * (k + 1));
+    for (let k = 0; k < K; k++) for (let m = 0; m < 6; m++) {
+      for (let i = 0; i < k; i++) {
+        addTri(A(k, m, i), B(k, m, i), B(k, m, i + 1));
+        addTri(A(k, m, i), B(k, m, i + 1), A(k, m, i + 1));
+      }
+      addTri(A(k, m, k), B(k, m, k), B(k, m, k + 1));
+    }
+
+    const map = new Map();
+    tris.forEach((t, ti) => {
+      t.e = [[t.a, t.b], [t.b, t.c], [t.c, t.a]].map(([u, v]) => {
+        const key = Math.min(u, v) * 100000 + Math.max(u, v);
+        let ei = map.get(key);
+        if (ei === undefined) {
+          const pa = pts[u], pb = pts[v];
+          ei = edges.length;
+          edges.push({ a: u, b: v, rest: Math.hypot(pb.x - pa.x, pb.y - pa.y), t: [], cracked: false, shell: true, thr: 1 });
+          map.set(key, ei);
+        }
+        edges[ei].t.push(ti);
+        return ei;
+      });
+    });
+    vEdges = pts.map(() => []);
+    edges.forEach((e, ei) => { vEdges[e.a].push(ei); vEdges[e.b].push(ei); });
+
+    face = {
+      eyeL: anchor(cx - R * 0.3, cy - R * 0.1), eyeR: anchor(cx + R * 0.3, cy - R * 0.1),
+      m0: anchor(cx - R * 0.1, cy + R * 0.14), m1: anchor(cx, cy + R * 0.22), m2: anchor(cx + R * 0.1, cy + R * 0.14),
+      bL: anchor(cx - R * 0.5, cy + R * 0.1), bR: anchor(cx + R * 0.5, cy + R * 0.1),
+    };
+    resetShell();
+  }
+
+  function area(a, b, c) { return (b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y); }
+
+  function addTri(a, b, c) {
+    if (area(pts[a], pts[b], pts[c]) < 0) { const t = b; b = c; c = t; }
+    const pa = pts[a], pb = pts[b], pc = pts[c];
+    tris.push({ a, b, c, rest: area(pa, pb, pc), rc: { x: (pa.x + pb.x + pc.x) / 3, y: (pa.y + pb.y + pc.y) / 3 }, shell: true, plate: 0, seen: false, e: null });
+  }
+
+  // remember a point of the rest shape as barycentric weights so it rides the mesh
+  function anchor(x, y) {
+    const q = { x, y };
+    for (const t of tris) {
+      const a = pts[t.a], b = pts[t.b], c = pts[t.c], d = area(a, b, c);
+      const u = area(q, b, c) / d, v = area(a, q, c) / d, w = 1 - u - v;
+      if (u >= -1e-6 && v >= -1e-6 && w >= -1e-6) return { t, u, v, w };
+    }
+    return { t: tris[0], u: 1, v: 0, w: 0 };
+  }
+  function at(an) {
+    const a = pts[an.t.a], b = pts[an.t.b], c = pts[an.t.c];
+    return { x: a.x * an.u + b.x * an.v + c.x * an.w, y: a.y * an.u + b.y * an.v + c.y * an.w };
+  }
+
+  const baseThr = () => 0.40 - 0.032 * P.brittle;
+  const edgeThr = e => baseThr() * (0.65 + 0.7 * Math.random()) * (e.seam ? 1 : 2.6);
+  function resetShell() {
+    // The shell is laid out as random plates. Seams between plates give way first, so cracks
+    // run as long jagged lines and the shell comes off in chunks; a plate only breaks up
+    // inside when it is bent hard, e.g. right under a finger.
+    const seeds = [];
+    for (let i = 0; i < 56; i++) seeds.push(tris[(Math.random() * tris.length) | 0].rc);
+    for (const t of tris) {
+      let best = 0, bd = Infinity;
+      for (let i = 0; i < seeds.length; i++) {
+        const dx = seeds[i].x - t.rc.x, dy = seeds[i].y - t.rc.y, d = dx * dx + dy * dy;
+        if (d < bd) { bd = d; best = i; }
+      }
+      t.plate = best; t.shell = true;
+    }
+    for (const e of edges) {
+      e.cracked = false; e.shell = true;
+      e.seam = e.t.length === 2 && tris[e.t[0]].plate !== tris[e.t[1]].plate;
+      e.thr = edgeThr(e);
+    }
+    shellCount = tris.length; doneFlag = false; loose = []; compsDirty = false;
+    $('recoat').classList.remove('ready');
+  }
+
+  // ---------- physics ----------
+  function physics(now) {
+    const kHome = 0.006 + 0.008 * P.rebound;
+    const kSoft = 0.6 - 0.05 * P.soft;
+    const fingerR = R * (0.16 + 0.028 * P.finger);
+    const damp = 0.8;
+    for (const p of pts) {
+      const vx = (p.x - p.px) * damp, vy = (p.y - p.py) * damp;
+      p.px = p.x; p.py = p.y;
+      p.x += vx + (p.hx - p.x) * kHome;
+      p.y += vy + (p.hy - p.y) * kHome;
+    }
+    const fs = [...fingers.values()];
+    for (const f of fs) f.r = fingerR * (1 - Math.exp(-Math.max(0, now - f.t0) / 140));   // the press sinks in over ~0.15s
+
+    for (let it = 0; it < 6; it++) {
+      for (const e of edges) {
+        const a = pts[e.a], b = pts[e.b];
+        let dx = b.x - a.x, dy = b.y - a.y;
+        const d = Math.hypot(dx, dy) || 1e-6;
+        const k = (e.cracked || !e.shell) ? kSoft : 0.9;   // an intact shell makes the toy stiff until it gives
+        const m = (d - e.rest) / d * 0.5 * k;
+        dx *= m; dy *= m;
+        a.x += dx; a.y += dy; b.x -= dx; b.y -= dy;
+      }
+      // the other hand holds the toy: it can dent, but not slide or spin away
+      let mx = 0, my = 0, sc = 0, sd = 0;
+      for (const p of pts) { mx += p.x - p.hx; my += p.y - p.hy; }
+      mx = mx / pts.length * 0.9; my = my / pts.length * 0.9;
+      for (const p of pts) {
+        p.x -= mx; p.y -= my;
+        const hx = p.hx - cx, hy = p.hy - cy, qx = p.x - cx, qy = p.y - cy;
+        sc += hx * qy - hy * qx; sd += hx * qx + hy * qy;
+      }
+      const ang = -0.9 * Math.atan2(sc, sd), ca = Math.cos(ang), sa = Math.sin(ang);
+      for (const p of pts) {
+        const qx = p.x - cx, qy = p.y - cy;
+        p.x = cx + qx * ca - qy * sa; p.y = cy + qx * sa + qy * ca;
+      }
+
+      for (const f of fs) {
+        const r2 = f.r * f.r;
+        for (const p of pts) {
+          let dx = p.x - f.x, dy = p.y - f.y;
+          const d2 = dx * dx + dy * dy;
+          if (d2 < r2) {
+            let d = Math.sqrt(d2);
+            if (d < 0.01) { dx = 0.01; dy = 0; d = 0.01; }
+            const s = (f.r - d) / d;
+            p.x += dx * s; p.y += dy * s;
+          }
+        }
+      }
+    }
+  }
+
+  function fracture() {
+    if (coat < 1) return;              // a fresh coat is still setting: the dip-and-wobble must not crack it
+    let cracks = 0, flakes = 0;
+    const fs = [...fingers.values()];
+    // fatigue: shell that keeps getting worked weakens, so holding or kneading always makes progress
+    // (without this a loose slab of shell just slides aside on the jelly instead of breaking)
+    for (const f of fs) {
+      const r2 = f.r * f.r * 2.56;
+      for (const e of edges) {
+        if (e.cracked || !e.shell) continue;
+        const a = pts[e.a], dx = a.x - f.x, dy = a.y - f.y;
+        if (dx * dx + dy * dy < r2) e.thr *= e.seam ? 0.96 : 0.985;
+      }
+    }
+    const n = edges.length, start = (Math.random() * n) | 0;
+    for (let i = 0; i < n && cracks < 10; i++) {       // a few per frame, so a big break arrives as a run of crackles
+      const e = edges[(start + i) % n];
+      if (e.cracked || !e.shell) continue;
+      const a = pts[e.a], b = pts[e.b];
+      const d = Math.hypot(b.x - a.x, b.y - a.y);
+      if (Math.abs(d - e.rest) / e.rest > e.thr) {
+        e.cracked = true; cracks++; compsDirty = true;
+        for (const v of [e.a, e.b]) for (const ei of vEdges[v]) {   // a crack runs on along the seam it started in
+          const o = edges[ei];
+          if (!o.cracked) o.thr *= o.seam ? 0.55 : 0.9;
+        }
+        if (Math.random() < 0.5) dust.push({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, vx: (Math.random() - 0.5) * 2, vy: -Math.random() * 1.5, life: 1, s: 1 + Math.random() * 1.6 });
+      }
+    }
+    // the last few crumbs let go on their own, so a toy can always be finished
+    const crumble = shellCount > 0 && shellCount < tris.length * 0.05;
+    if (crumble) for (const e of edges) if (e.shell && !e.cracked) { e.cracked = true; compsDirty = true; }
+    if (compsDirty) findLoose();
+
+    for (const piece of loose) {
+      if (flakes >= 3) break;
+      if (piece.gone) continue;
+      let mx = 0, my = 0, maxDev = 0;
+      for (const t of piece.tris) {
+        const a = pts[t.a], b = pts[t.b], c = pts[t.c];
+        maxDev = Math.max(maxDev, Math.abs(area(a, b, c) / t.rest - 1));
+        mx += (a.x + b.x + c.x) / 3; my += (a.y + b.y + c.y) / 3;
+      }
+      mx /= piece.tris.length; my /= piece.tris.length;
+      let near = null;
+      for (const f of fs) if (Math.hypot(mx - f.x, my - f.y) < f.r * 1.8) near = f;
+      if (maxDev > 0.3 || (near && Math.random() < 0.14) || (crumble && Math.random() < 0.25)) { flake(piece, mx, my, near); flakes++; }
+    }
+    if (cracks) { for (let i = 0; i < Math.min(cracks, 3); i++) crackle(0.5 + cracks / 10); buzz(6); }
+    if (flakes) { for (let i = 0; i < Math.min(flakes, 2); i++) pop(); }
+    if (shellCount === 0 && !doneFlag) { doneFlag = true; cleared++; $('recoat').classList.add('ready'); }
+  }
+
+  // shell triangles still joined through uncracked edges form one piece; small pieces are free to fall
+  function findLoose() {
+    compsDirty = false; loose = [];
+    for (const t of tris) t.seen = false;
+    for (const t0 of tris) {
+      if (!t0.shell || t0.seen) continue;
+      const list = [t0]; t0.seen = true;
+      for (let i = 0; i < list.length; i++) for (const ei of list[i].e) {
+        const e = edges[ei];
+        if (e.cracked) continue;
+        for (const ti of e.t) { const o = tris[ti]; if (o.shell && !o.seen) { o.seen = true; list.push(o); } }
+      }
+      if (list.length <= 40) loose.push({ tris: list, gone: false });
+    }
+  }
+
+  function flake(piece, mx, my, near) {
+    piece.gone = true;
+    const poly = [];
+    for (const t of piece.tris) {
+      t.shell = false;
+      for (const v of [t.a, t.b, t.c]) poly.push(pts[v].x - mx, pts[v].y - my);
+    }
+    for (const t of piece.tris) for (const ei of t.e) edges[ei].shell = edges[ei].t.some(ti => tris[ti].shell);
+    shellCount -= piece.tris.length; flakedTotal++;
+    const ox = near ? mx - near.x : mx - cx, oy = near ? my - near.y : my - cy, ol = Math.hypot(ox, oy) || 1;
+    shards.push({
+      x: mx, y: my, p: poly,
+      vx: ox / ol * (1.2 + Math.random() * 2.2), vy: oy / ol * (1.2 + Math.random() * 1.8) - 2.4,
+      rot: 0, vr: (Math.random() - 0.5) * 0.3, life: 1,
+    });
+  }
+
+  // ---------- sound & haptics ----------
+  let actx = null, noise = null, master = null;
+  function initAudio() {
+    if (!actx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      actx = new AC();
+      noise = actx.createBuffer(1, actx.sampleRate * 0.3, actx.sampleRate);
+      const d = noise.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      master = actx.createGain(); master.gain.value = 0.7; master.connect(actx.destination);
+    }
+    if (actx.state === 'suspended') actx.resume();
+  }
+  function burst(freq, q, peak, len, rate) {
+    if (!soundOn || !actx || actx.state !== 'running') return;
+    const t = actx.currentTime + Math.random() * 0.035;
+    const src = actx.createBufferSource(); src.buffer = noise; src.playbackRate.value = rate;
+    const bp = actx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = freq; bp.Q.value = q;
+    const g = actx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(peak, t + 0.002);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+    src.connect(bp); bp.connect(g); g.connect(master);
+    src.start(t, Math.random() * 0.15, len + 0.02);
+  }
+  const crackle = k => burst(2600 + Math.random() * 4200, 1.4, Math.min(0.5, 0.22 * k), 0.025 + Math.random() * 0.04, 0.8 + Math.random() * 1.2);
+  const pop = () => burst(900 + Math.random() * 900, 2.2, 0.3, 0.06 + Math.random() * 0.04, 0.6 + Math.random() * 0.5);
+  function buzz(ms) { try { if (navigator.vibrate) navigator.vibrate(ms); } catch (_) {} }
+
+  // ---------- drawing ----------
+  function outline(c) {
+    const n = boundary.length;
+    const p = i => pts[boundary[(i + n) % n]];
+    c.beginPath();
+    c.moveTo((p(-1).x + p(0).x) / 2, (p(-1).y + p(0).y) / 2);
+    for (let i = 0; i < n; i++) c.quadraticCurveTo(p(i).x, p(i).y, (p(i).x + p(i + 1).x) / 2, (p(i).y + p(i + 1).y) / 2);
+    c.closePath();
+  }
+  function triPath(c, t) {
+    const a = pts[t.a], b = pts[t.b], d = pts[t.c];
+    c.moveTo(a.x, a.y); c.lineTo(b.x, b.y); c.lineTo(d.x, d.y); c.closePath();
+  }
+
+  function draw() {
+    const fl = FLAVORS[flavor];
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+
+    // contact shadow
+    ctx.save();
+    ctx.translate(cx, cy + R * 0.9); ctx.scale(1, 0.2);
+    const sg = ctx.createRadialGradient(0, 0, 0, 0, 0, R * 1.15);
+    sg.addColorStop(0, 'rgba(20,40,34,0.28)'); sg.addColorStop(1, 'rgba(20,40,34,0)');
+    ctx.fillStyle = sg; ctx.beginPath(); ctx.arc(0, 0, R * 1.15, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+
+    // jelly body
+    outline(ctx);
+    const bg = ctx.createRadialGradient(cx - R * 0.3, cy - R * 0.35, R * 0.05, cx, cy, R * 1.15);
+    bg.addColorStop(0, `hsl(${fl.h} ${fl.s}% ${fl.l + 12}%)`);
+    bg.addColorStop(0.6, `hsl(${fl.h} ${fl.s}% ${fl.l}%)`);
+    bg.addColorStop(1, `hsl(${fl.h} ${fl.s - 8}% ${fl.l - 14}%)`);
+    ctx.fillStyle = bg; ctx.fill();
+
+    // stretched skin reads darker (the dent), squeezed skin lighter (the bulge)
+    const dark = [[], [], [], []], light = [[], [], []];
+    for (const t of tris) {
+      const dev = area(pts[t.a], pts[t.b], pts[t.c]) / t.rest - 1;
+      if (dev > 0.08) dark[Math.min(3, ((dev - 0.08) / 0.25) | 0)].push(t);
+      else if (dev < -0.06) light[Math.min(2, ((-dev - 0.06) / 0.12) | 0)].push(t);
+    }
+    [0.07, 0.14, 0.2, 0.26].forEach((a, i) => { if (!dark[i].length) return; ctx.beginPath(); dark[i].forEach(t => triPath(ctx, t)); ctx.fillStyle = `hsla(${fl.h}, ${fl.s}%, 22%, ${a})`; ctx.fill(); });
+    [0.12, 0.2, 0.28].forEach((a, i) => { if (!light[i].length) return; ctx.beginPath(); light[i].forEach(t => triPath(ctx, t)); ctx.fillStyle = `rgba(255,255,255,${a})`; ctx.fill(); });
+
+    drawFace(fl);
+
+    // gloss on bare jelly
+    ctx.save(); outline(ctx); ctx.clip();
+    ctx.translate(cx - R * 0.36, cy - R * 0.44); ctx.rotate(-0.5); ctx.scale(1, 0.45);
+    const gg = ctx.createRadialGradient(0, 0, 0, 0, 0, R * 0.42);
+    gg.addColorStop(0, 'rgba(255,255,255,0.6)'); gg.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(0, 0, R * 0.42, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+
+    drawShell(fl);
+
+    // depth under each finger
+    ctx.save(); outline(ctx); ctx.clip();
+    for (const f of fingers.values()) {
+      if (f.r < 1) continue;
+      const dg = ctx.createRadialGradient(f.x, f.y, 0, f.x, f.y, f.r * 1.15);
+      dg.addColorStop(0, 'rgba(40,20,30,0.3)'); dg.addColorStop(0.7, 'rgba(40,20,30,0.12)'); dg.addColorStop(1, 'rgba(40,20,30,0)');
+      ctx.fillStyle = dg; ctx.beginPath(); ctx.arc(f.x, f.y, f.r * 1.15, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+    for (const f of fingers.values()) {
+      if (f.r < 1) continue;
+      ctx.beginPath(); ctx.arc(f.x, f.y, f.r * 0.85, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,255,255,0.1)'; ctx.fill();
+      ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.stroke();
+    }
+
+    // falling shell
+    const shellCol = `hsl(${fl.h} 40% 95%)`;
+    for (const s of shards) {
+      ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(s.rot); ctx.globalAlpha = Math.max(0, Math.min(1, s.life * 1.6));
+      ctx.beginPath();
+      for (let i = 0; i < s.p.length; i += 6) { ctx.moveTo(s.p[i], s.p[i + 1]); ctx.lineTo(s.p[i + 2], s.p[i + 3]); ctx.lineTo(s.p[i + 4], s.p[i + 5]); ctx.closePath(); }
+      ctx.fillStyle = shellCol; ctx.fill(); ctx.lineWidth = 0.8; ctx.strokeStyle = shellCol; ctx.stroke();
+      ctx.restore();
+    }
+    ctx.fillStyle = shellCol;
+    for (const d of dust) { ctx.globalAlpha = Math.max(0, d.life); ctx.beginPath(); ctx.arc(d.x, d.y, d.s, 0, Math.PI * 2); ctx.fill(); }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawFace(fl) {
+    const ink = `hsl(${fl.h} 35% 22%)`;
+    const pressed = fingers.size > 0;
+    const er = R * 0.05;
+    for (const key of ['bL', 'bR']) {
+      const b = at(face[key]);
+      ctx.beginPath(); ctx.arc(b.x, b.y, R * 0.09, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255,70,110,0.25)'; ctx.fill();
+    }
+    ctx.strokeStyle = ink; ctx.fillStyle = ink; ctx.lineWidth = Math.max(2, R * 0.022); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    [['eyeL', 1], ['eyeR', -1]].forEach(([key, dir]) => {
+      const e = at(face[key]);
+      if (pressed) {
+        ctx.beginPath(); ctx.moveTo(e.x - er * dir, e.y - er); ctx.lineTo(e.x + er * dir, e.y); ctx.lineTo(e.x - er * dir, e.y + er); ctx.stroke();
+      } else {
+        ctx.beginPath(); ctx.arc(e.x, e.y, er, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(e.x - er * 0.3, e.y - er * 0.35, er * 0.32, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.fill(); ctx.fillStyle = ink;
+      }
+    });
+    const m0 = at(face.m0), m1 = at(face.m1), m2 = at(face.m2);
+    ctx.beginPath();
+    if (pressed) ctx.ellipse(m1.x, (m0.y + m1.y) / 2, R * 0.045, R * 0.055, 0, 0, Math.PI * 2);
+    else { ctx.moveTo(m0.x, m0.y); ctx.quadraticCurveTo(m1.x, m1.y, m2.x, m2.y); }
+    ctx.stroke();
+  }
+
+  function drawShell(fl) {
+    if (!shellCount) return;
+    sctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    sctx.globalCompositeOperation = 'source-over';
+    sctx.clearRect(0, 0, W, H);
+    const shellCol = `hsl(${fl.h} 40% 95%)`;
+    sctx.beginPath();
+    for (const t of tris) if (t.shell) triPath(sctx, t);
+    sctx.fillStyle = shellCol; sctx.fill();
+    sctx.lineWidth = 0.7; sctx.strokeStyle = shellCol; sctx.lineJoin = 'round'; sctx.stroke();
+
+    sctx.globalCompositeOperation = 'source-atop';
+    const hg = sctx.createRadialGradient(cx - R * 0.35, cy - R * 0.4, 0, cx - R * 0.1, cy - R * 0.1, R * 1.35);
+    hg.addColorStop(0, 'rgba(255,255,255,0.95)'); hg.addColorStop(0.45, 'rgba(255,255,255,0)');
+    hg.addColorStop(1, `hsla(${fl.h}, 30%, 45%, 0.3)`);
+    sctx.fillStyle = hg; sctx.fillRect(0, 0, W, H);
+
+    // cracks follow the edges that gave way; the jelly colour shows through
+    sctx.beginPath();
+    for (const e of edges) {
+      if (!e.cracked || e.t.length < 2) continue;
+      if (!tris[e.t[0]].shell || !tris[e.t[1]].shell) continue;
+      sctx.moveTo(pts[e.a].x, pts[e.a].y); sctx.lineTo(pts[e.b].x, pts[e.b].y);
+    }
+    sctx.lineCap = 'round'; sctx.lineJoin = 'round'; sctx.lineWidth = 1.6;
+    sctx.strokeStyle = `hsla(${fl.h}, ${fl.s - 20}%, ${fl.l - 26}%, 0.9)`; sctx.stroke();
+
+    // broken rim where shell meets bare jelly
+    sctx.beginPath();
+    for (const e of edges) {
+      if (e.t.length < 2) continue;
+      if (tris[e.t[0]].shell === tris[e.t[1]].shell) continue;
+      sctx.moveTo(pts[e.a].x, pts[e.a].y); sctx.lineTo(pts[e.b].x, pts[e.b].y);
+    }
+    sctx.lineWidth = 2; sctx.strokeStyle = `hsla(${fl.h}, 30%, 55%, 0.55)`; sctx.stroke();
+    sctx.globalCompositeOperation = 'source-over';
+
+    ctx.globalAlpha = coat;
+    ctx.drawImage(shellCv, 0, 0, W, H);
+    ctx.globalAlpha = 1;
+  }
+
+  // ---------- loop ----------
+  let last = 0, acc = 0, shownLeft = -1, shownFlakes = -1, shownCleared = -1;
+  function frame(now) {
+    requestAnimationFrame(frame);
+    if (!W) return;
+    acc += Math.min(60, now - (last || now)); last = now;
+    let steps = 0;
+    while (acc >= 16.6 && steps < 3) {
+      physics(now); fracture();
+      for (const s of shards) { s.vy += 0.35; s.x += s.vx; s.y += s.vy; s.rot += s.vr; s.life -= 0.02; }
+      for (const d of dust) { d.vy += 0.12; d.x += d.vx; d.y += d.vy; d.life -= 0.04; }
+      shards = shards.filter(s => s.life > 0 && s.y < H + 40);
+      dust = dust.filter(d => d.life > 0);
+      if (coat < 1) coat = Math.min(1, coat + 0.035);
+      acc -= 16.6; steps++;
+    }
+    draw();
+    const left = Math.round(shellCount / tris.length * 100);
+    if (left !== shownLeft) { shownLeft = left; $('left').textContent = left + '%'; $('bar').style.width = left + '%'; }
+    if (flakedTotal !== shownFlakes) { shownFlakes = flakedTotal; $('flakes').textContent = flakedTotal; }
+    if (cleared !== shownCleared) { shownCleared = cleared; $('cleared').textContent = cleared; }
+  }
+
+  function resize() {
+    const r = cv.getBoundingClientRect();
+    if (!r.width || Math.abs(r.width - W) < 1) return;
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    W = r.width; H = r.height;
+    cv.width = shellCv.width = Math.round(W * DPR);
+    cv.height = shellCv.height = Math.round(H * DPR);
+    build();
+  }
+
+  // ---------- input ----------
+  function pos(ev) { const r = cv.getBoundingClientRect(); return { x: ev.clientX - r.left, y: ev.clientY - r.top }; }
+  cv.addEventListener('pointerdown', ev => {
+    ev.preventDefault();
+    try { cv.setPointerCapture(ev.pointerId); } catch (_) {}
+    initAudio();
+    const p = pos(ev);
+    fingers.set(ev.pointerId, { x: p.x, y: p.y, t0: performance.now(), r: 0 });
+    if (!touched) { touched = true; $('hint').hidden = true; }
+  });
+  cv.addEventListener('pointermove', ev => {
+    const f = fingers.get(ev.pointerId);
+    if (f) { const p = pos(ev); f.x = p.x; f.y = p.y; }
+  });
+  const lift = ev => fingers.delete(ev.pointerId);
+  cv.addEventListener('pointerup', lift);
+  cv.addEventListener('pointercancel', lift);
+  cv.addEventListener('lostpointercapture', lift);
+  cv.addEventListener('contextmenu', ev => ev.preventDefault());
+
+  $('recoat').addEventListener('click', () => {
+    initAudio();
+    resetShell(); coat = 0;
+    for (const p of pts) { p.x = cx + (p.x - cx) * 0.9; p.y = cy + (p.y - cy) * 0.9; }   // a little dip-and-wobble
+  });
+  for (const key of ['brittle', 'soft', 'rebound', 'finger']) {
+    const el = $('k-' + key);
+    const sync = () => { P[key] = +el.value; $('o-' + key).textContent = el.value; };
+    el.addEventListener('input', () => {
+      sync();
+      if (key === 'brittle') { for (const e of edges) if (!e.cracked) e.thr = edgeThr(e); }
+    });
+    sync();
+  }
+  document.querySelectorAll('input[name="flavor"]').forEach(el => {
+    el.addEventListener('change', () => { if (el.checked) flavor = el.value; });
+    if (el.checked) flavor = el.value;
+  });
+  $('sound').addEventListener('change', ev => { soundOn = ev.target.checked; });
+  soundOn = $('sound').checked;
+
+  if (window.ResizeObserver) new ResizeObserver(resize).observe(cv); else window.addEventListener('resize', resize);
+  resize();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
