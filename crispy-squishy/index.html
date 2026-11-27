@@ -167,6 +167,21 @@ summary { cursor: pointer; font-size: 14px; }
     <div class="sign-extra"><button class="btn" id="freeAd" type="button"></button></div>
   </section>
 
+  <details id="tune">
+    <summary>自己调手感</summary>
+    <div class="knobs">
+      <label for="k-brittle">脆度</label><input type="range" id="k-brittle" min="1" max="10" value="6"><output id="o-brittle">6</output>
+      <label for="k-soft">内馅软度</label><input type="range" id="k-soft" min="1" max="10" value="5"><output id="o-soft">5</output>
+      <label for="k-rebound">内馅回弹</label><input type="range" id="k-rebound" min="1" max="10" value="1"><output id="o-rebound">1</output>
+      <label for="k-ooze">爆浆量</label><input type="range" id="k-ooze" min="1" max="10" value="6"><output id="o-ooze">6</output>
+      <label for="k-finger">手指大小</label><input type="range" id="k-finger" min="1" max="10" value="5"><output id="o-finger">5</output>
+    </div>
+    <div class="row" id="devRow" hidden style="margin-top:10px">
+      <button class="btn" id="reset" type="button" style="font-size:13px;padding:6px 10px">清空存档</button>
+    </div>
+    <p class="note">这些会用在你接下来做的每一颗上，下次打开还在。内馅回弹 1 是粘土，捏成什么样就留成什么样；调高会越来越像 Q 弹的果冻。布丁和气泡水自带回弹。手机上可以两根手指一起捏。</p>
+  </details>
+
   <div class="foot">
     <label class="sound"><input type="checkbox" id="sound" checked>声音</label>
     <details>
@@ -177,20 +192,6 @@ summary { cursor: pointer; font-size: 14px; }
     </details>
   </div>
 
-  <details id="dev" hidden>
-    <summary>调手感</summary>
-    <div class="knobs">
-      <label for="k-brittle">脆度</label><input type="range" id="k-brittle" min="1" max="10" value="6"><output id="o-brittle">6</output>
-      <label for="k-soft">内馅软度</label><input type="range" id="k-soft" min="1" max="10" value="5"><output id="o-soft">5</output>
-      <label for="k-rebound">内馅回弹</label><input type="range" id="k-rebound" min="1" max="10" value="1"><output id="o-rebound">1</output>
-      <label for="k-ooze">爆浆量</label><input type="range" id="k-ooze" min="1" max="10" value="6"><output id="o-ooze">6</output>
-      <label for="k-finger">手指大小</label><input type="range" id="k-finger" min="1" max="10" value="5"><output id="o-finger">5</output>
-    </div>
-    <div class="row" style="margin-top:10px">
-      <button class="btn" id="reset" type="button" style="font-size:13px;padding:6px 10px">清空存档</button>
-    </div>
-    <p class="note">内馅回弹 1 是粘土，捏成什么样就留成什么样；调高会越来越像 Q 弹的果冻。布丁和气泡水自带回弹。手机上可以两根手指一起捏。</p>
-  </details>
 </div>
 
 <div class="ad-demo" id="adDemo" hidden>
@@ -1440,8 +1441,9 @@ summary { cursor: pointer; font-size: 14px; }
   for (const key of ['brittle', 'soft', 'rebound', 'ooze', 'finger']) {
     const el = $('k-' + key);
     const sync = () => { P[key] = +el.value; $('o-' + key).textContent = el.value; };
+    if (S.tune && S.tune[key] >= 1 && S.tune[key] <= 10) el.value = S.tune[key];   // the player's own feel settings come back with the save
     el.addEventListener('input', () => {
-      sync();
+      sync(); S.tune = { ...P }; save();
       if (key === 'brittle') { for (const e of edges) if (!e.cracked) e.thr = edgeThr(e); }
     });
     sync();
@@ -1449,7 +1451,7 @@ summary { cursor: pointer; font-size: 14px; }
   $('sound').addEventListener('change', ev => { soundOn = ev.target.checked; });
   soundOn = $('sound').checked;
 
-  if (/[?&]dev\b/.test(location.search)) $('dev').hidden = false;   // tuning sliders and save reset are for development only
+  if (/[?&]dev\b/.test(location.search)) $('devRow').hidden = false;   // wiping the save is for development only
   $('coins').textContent = S.coins;
   renderCards(); renderShelf(); renderSign();
   if (window.ResizeObserver) new ResizeObserver(resize).observe(cv); else window.addEventListener('resize', resize);
