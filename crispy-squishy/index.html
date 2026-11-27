@@ -9,7 +9,8 @@
 /* Layout: one column; the toy on a square stage is the page, readouts and tuning sit quietly below it. */
 :root {
   --bg: #e9f1ee;
-  --stage: #d9e7e1;
+  --stage: #cfe0d9;
+  --stage-hi: #eef6f2;
   --panel: #f6faf8;
   --fg: #1d2b27;
   --muted: #586c66;
@@ -21,12 +22,12 @@
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #121c1a; --stage: #1b2a26; --panel: #1f302b; --fg: #e6f0ec; --muted: #94a9a2;
+    --bg: #121c1a; --stage: #17231f; --stage-hi: #2a3f39; --panel: #1f302b; --fg: #e6f0ec; --muted: #94a9a2;
     --line: #30443e; --accent: #ff6b9d; --accent-fg: #2a0a16; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #121c1a; --stage: #1b2a26; --panel: #1f302b; --fg: #e6f0ec; --muted: #94a9a2;
+  --bg: #121c1a; --stage: #17231f; --stage-hi: #2a3f39; --panel: #1f302b; --fg: #e6f0ec; --muted: #94a9a2;
   --line: #30443e; --accent: #ff6b9d; --accent-fg: #2a0a16; color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -42,7 +43,7 @@ body {
 header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 h1 { font-family: var(--display); font-weight: 400; font-size: 34px; line-height: 1.1; margin: 0; letter-spacing: 0.02em; }
 .sub { color: var(--muted); font-size: 13px; margin: 0; }
-.stage-box { position: relative; background: var(--stage); border-radius: 28px; overflow: hidden; }
+.stage-box { position: relative; background: radial-gradient(ellipse 70% 62% at 50% 44%, var(--stage-hi), var(--stage) 78%); border-radius: 28px; overflow: hidden; }
 canvas#stage { display: block; width: 100%; aspect-ratio: 1 / 1; max-width: 100%; touch-action: none; cursor: grab; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 canvas#stage:active { cursor: grabbing; }
 .hint {
@@ -195,6 +196,22 @@ summary { cursor: pointer; font-size: 14px; }
   const TOY_KEYS = Object.keys(TOYS);
   let toyKey = TOY_KEYS[(Math.random() * TOY_KEYS.length) | 0];
   let decals = [], unit = 1;
+  let plateShade = [], plateBroken = [];   // once a plate breaks free it tilts a little and catches the light differently
+
+  // a soft mottled texture so the filling reads as dough rather than flat colour
+  const pasteTex = document.createElement('canvas');
+  pasteTex.width = pasteTex.height = 128;
+  {
+    const tc = pasteTex.getContext('2d');
+    for (let i = 0; i < 280; i++) {
+      const x = Math.random() * 128, y = Math.random() * 128, r = 1.5 + Math.random() * 6, lightSpot = Math.random() < 0.5;
+      const g = tc.createRadialGradient(x, y, 0, x, y, r);
+      g.addColorStop(0, lightSpot ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.32)');
+      g.addColorStop(1, lightSpot ? 'rgba(255,255,255,0)' : 'rgba(0,0,0,0)');
+      tc.fillStyle = g; tc.fillRect(x - r, y - r, r * 2, r * 2);
+    }
+  }
+  let pastePattern = null;
 
   // how far the silhouette reaches from the centre in a given direction (the farthest outline wins)
   function rayRadius(polys, a) {
@@ -340,8 +357,10 @@ summary { cursor: pointer; font-size: 14px; }
         const dx = seeds[i].x - t.rc.x, dy = seeds[i].y - t.rc.y, d = dx * dx + dy * dy;
         if (d < bd) { bd = d; best = i; }
       }
-      t.plate = best; t.shell = true; t.rest = t.rest0;
+      t.plate = best; t.shell = true; t.rest = t.rest0; t.sh = undefined;
     }
+    plateShade = seeds.map(() => Math.random() * 2 - 1);
+    plateBroken = seeds.map(() => false);
     for (const e of edges) {
       e.cracked = false; e.shell = true; e.rest = e.rest0;
       e.seam = e.t.length === 2 && tris[e.t[0]].plate !== tris[e.t[1]].plate;
@@ -463,7 +482,7 @@ summary { cursor: pointer; font-size: 14px; }
     for (let i = stuck.length - 1; i >= 0; i--) {
       const s = stuck[i], q = pts[s.v];
       for (const f of fs) if (Math.hypot(q.x - f.x, q.y - f.y) < f.r * 1.3 && Math.random() < 0.02) {
-        shards.push({ x: q.x, y: q.y, p: s.p, vx: (Math.random() - 0.5) * 3, vy: -1.5 - Math.random(), rot: 0, vr: (Math.random() - 0.5) * 0.3, life: 1 });
+        shards.push({ x: q.x, y: q.y, p: s.p, o: s.o, tone: s.tone, vx: (Math.random() - 0.5) * 3, vy: -1.5 - Math.random(), rot: 0, vr: (Math.random() - 0.5) * 0.3, life: 1 });
         stuck.splice(i, 1); break;
       }
     }
@@ -492,12 +511,17 @@ summary { cursor: pointer; font-size: 14px; }
       const a = pts[e.a], b = pts[e.b];
       const d = Math.hypot(b.x - a.x, b.y - a.y);
       if (Math.abs(d - e.rest) / e.rest > e.thr) {
-        e.cracked = true; cracks++; compsDirty = true;
+        e.cracked = true; e.born = performance.now(); cracks++; compsDirty = true;
+        for (const ti of e.t) {
+          const t = tris[ti];
+          if (e.seam) plateBroken[t.plate] = true;          // the plate is loose now: it gets its own tilt
+          else t.sh = Math.random() * 2 - 1;                // a plate that splits inside breaks into smaller facets
+        }
         for (const v of [e.a, e.b]) for (const ei of vEdges[v]) {   // a crack runs on along the seam it started in
           const o = edges[ei];
           if (!o.cracked) o.thr *= o.seam ? 0.55 : 0.9;
         }
-        if (Math.random() < 0.5) dust.push({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, vx: (Math.random() - 0.5) * 2, vy: -Math.random() * 1.5, life: 1, s: 1 + Math.random() * 1.6 });
+        for (let k = 0; k < 2; k++) if (Math.random() < 0.6) dust.push({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, vx: (Math.random() - 0.5) * 2.6, vy: -Math.random() * 2, life: 1, s: 0.8 + Math.random() * 1.8 });
       }
     }
     // the last few crumbs let go on their own, so a toy can always be finished
@@ -548,19 +572,25 @@ summary { cursor: pointer; font-size: 14px; }
     for (const v of verts) pts[v].bare = vTris[v].every(ti => !tris[ti].shell);
     shellCount -= piece.tris.length; flakedTotal++;
 
+    // the outer edge of the piece (edges that belong to only one of its triangles), for its lit rim
+    const uses = new Map();
+    for (const t of piece.tris) for (const ei of t.e) uses.set(ei, (uses.get(ei) || 0) + 1);
+    const shape = (rx, ry) => {
+      const poly = [], rim = [];
+      for (const t of piece.tris) for (const v of [t.a, t.b, t.c]) poly.push(pts[v].x - rx, pts[v].y - ry);
+      for (const [ei, n] of uses) if (n === 1) { const e = edges[ei]; rim.push(pts[e.a].x - rx, pts[e.a].y - ry, pts[e.b].x - rx, pts[e.b].y - ry); }
+      return { p: poly, o: rim, tone: Math.random() * 2 - 1 };
+    };
+
     if (piece.tris.length >= 3 && Math.random() < 0.6) {
       // most of the broken shell stays stuck to the filling and rides along on it
       let av = piece.tris[0].a, bd = Infinity;
       for (const v of verts) { const d = Math.hypot(pts[v].x - mx, pts[v].y - my); if (d < bd) { bd = d; av = v; } }
-      const poly = [];
-      for (const t of piece.tris) for (const v of [t.a, t.b, t.c]) poly.push(pts[v].x - pts[av].x, pts[v].y - pts[av].y);
-      stuck.push({ v: av, p: poly });
+      stuck.push({ v: av, ...shape(pts[av].x, pts[av].y) });
     } else {
-      const poly = [];
-      for (const t of piece.tris) for (const v of [t.a, t.b, t.c]) poly.push(pts[v].x - mx, pts[v].y - my);
       const ox = near ? mx - near.x : mx - cx, oy = near ? my - near.y : my - cy, ol = Math.hypot(ox, oy) || 1;
       shards.push({
-        x: mx, y: my, p: poly,
+        x: mx, y: my, ...shape(mx, my),
         vx: ox / ol * (1.2 + Math.random() * 2.2), vy: oy / ol * (1.2 + Math.random() * 1.8) - 2.4,
         rot: 0, vr: (Math.random() - 0.5) * 0.3, life: 1,
       });
@@ -669,6 +699,8 @@ summary { cursor: pointer; font-size: 14px; }
     ctx.lineWidth = 1.5; ctx.strokeStyle = hsl(fl.paste, -22, 0.5); ctx.stroke();
 
     ctx.save(); outline(ctx); ctx.clip();
+    if (!pastePattern) pastePattern = ctx.createPattern(pasteTex, 'repeat');
+    ctx.globalAlpha = 0.2; ctx.fillStyle = pastePattern; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1;
     for (const d of dimples) {                         // thumbprints: shaded on the lit side, bright on the far rim
       const q = pts[d.v], x = q.x + d.ox, y = q.y + d.oy;
       let g = ctx.createRadialGradient(x - d.r * 0.2, y - d.r * 0.2, 0, x, y, d.r);
@@ -684,17 +716,25 @@ summary { cursor: pointer; font-size: 14px; }
       ctx.fillStyle = 'rgba(255,255,255,0.45)';
       for (const g of list) if (g.r > 11) { ctx.beginPath(); ctx.ellipse(g.x - g.r * 0.3, g.y - g.r * 0.35, g.r * 0.28, g.r * 0.18, -0.6, 0, Math.PI * 2); ctx.fill(); }
     }
+    // the shell sits proud of the filling: it throws a shadow onto the dough along every broken edge
+    ctx.fillStyle = 'rgba(25,12,35,0.3)';
+    if (shellCount) {
+      ctx.save(); ctx.translate(2.5, 3.5); ctx.beginPath();
+      for (const t of tris) if (t.shell) triPath(ctx, t);
+      ctx.fill(); ctx.restore();
+    }
+    for (const s of stuck) {
+      const q = pts[s.v];
+      ctx.save(); ctx.translate(q.x + 2.5, q.y + 3.5); ctx.beginPath(); polyPath(ctx, s.p); ctx.fill(); ctx.restore();
+    }
     ctx.restore();
 
     drawShell(fl);
 
     // broken shell still stuck to the filling
-    if (stuck.length) {
-      ctx.fillStyle = hsl(fl.shell, -3); ctx.strokeStyle = hsl(fl.shell, 12, 0.7); ctx.lineWidth = 0.8;
-      for (const s of stuck) {
-        const q = pts[s.v];
-        ctx.save(); ctx.translate(q.x, q.y); ctx.beginPath(); polyPath(ctx, s.p); ctx.fill(); ctx.stroke(); ctx.restore();
-      }
+    for (const s of stuck) {
+      const q = pts[s.v];
+      ctx.save(); ctx.translate(q.x, q.y); drawShard(fl, s); ctx.restore();
     }
 
     // depth under each finger
@@ -723,13 +763,23 @@ summary { cursor: pointer; font-size: 14px; }
     // falling shell
     for (const s of shards) {
       ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(s.rot); ctx.globalAlpha = Math.max(0, Math.min(1, s.life * 1.6));
-      ctx.beginPath(); polyPath(ctx, s.p);
-      ctx.fillStyle = hsl(fl.shell); ctx.fill(); ctx.lineWidth = 0.8; ctx.strokeStyle = hsl(fl.shell, 12, 0.7); ctx.stroke();
+      drawShard(fl, s);
       ctx.restore();
     }
-    ctx.fillStyle = hsl(fl.shell, 10);
+    ctx.fillStyle = hsl(fl.shell, 38);
     for (const d of dust) { ctx.globalAlpha = Math.max(0, d.life); ctx.beginPath(); ctx.arc(d.x, d.y, d.s, 0, Math.PI * 2); ctx.fill(); }
     ctx.globalAlpha = 1;
+  }
+
+  // a loose piece of shell, drawn at the current origin: a darker side wall, the top face, and a lit rim
+  function drawShard(fl, s) {
+    const side = hsl(fl.shell, -18), face = hsl(fl.shell, s.tone * 5);
+    ctx.lineJoin = 'round'; ctx.lineWidth = 0.8;
+    ctx.save(); ctx.translate(1.4, 2.4); ctx.beginPath(); polyPath(ctx, s.p); ctx.fillStyle = side; ctx.strokeStyle = side; ctx.fill(); ctx.stroke(); ctx.restore();
+    ctx.beginPath(); polyPath(ctx, s.p); ctx.fillStyle = face; ctx.strokeStyle = face; ctx.fill(); ctx.stroke();
+    ctx.beginPath();
+    for (let i = 0; i < s.o.length; i += 4) { ctx.moveTo(s.o[i], s.o[i + 1]); ctx.lineTo(s.o[i + 2], s.o[i + 3]); }
+    ctx.lineCap = 'round'; ctx.lineWidth = 1.1; ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.stroke();
   }
 
   function drawShell(fl) {
@@ -763,35 +813,61 @@ summary { cursor: pointer; font-size: 14px; }
       }
     }
 
-    // a hard, glossy skin: dark towards the rim, one sharp highlight
+    // broken plates no longer lie flush: each one tilts its own way and takes the light differently
+    const facets = [[], [], [], [], []];
+    for (const t of tris) {
+      if (!t.shell) continue;
+      const s = t.sh !== undefined ? t.sh : (plateBroken[t.plate] ? plateShade[t.plate] : null);
+      if (s !== null) facets[Math.max(0, Math.min(4, Math.round((s + 1) * 2)))].push(t);
+    }
+    ['rgba(0,0,0,0.22)', 'rgba(0,0,0,0.11)', null, 'rgba(255,255,255,0.11)', 'rgba(255,255,255,0.22)'].forEach((tone, i) => {
+      if (!tone || !facets[i].length) return;
+      sctx.beginPath(); facets[i].forEach(t => triPath(sctx, t)); sctx.fillStyle = tone; sctx.fill();
+    });
+
+    // a hard, glossy skin: dark towards the rim, a sharp key light, a small glint and a soft bounce light
     const rim = sctx.createRadialGradient(cx - R * 0.15, cy - R * 0.2, R * 0.3, cx, cy, R * 1.2);
     rim.addColorStop(0, 'rgba(0,0,0,0)'); rim.addColorStop(1, 'rgba(0,0,0,0.42)');
     sctx.fillStyle = rim; sctx.fillRect(0, 0, W, H);
+    const bounce = sctx.createRadialGradient(cx + R * 0.5, cy + R * 0.55, 0, cx + R * 0.5, cy + R * 0.55, R * 0.6);
+    bounce.addColorStop(0, 'rgba(255,255,255,0.2)'); bounce.addColorStop(1, 'rgba(255,255,255,0)');
+    sctx.fillStyle = bounce; sctx.fillRect(0, 0, W, H);
     sctx.save();
     sctx.translate(cx - R * 0.36, cy - R * 0.46); sctx.rotate(-0.55); sctx.scale(1, 0.42);
     const hg = sctx.createRadialGradient(0, 0, 0, 0, 0, R * 0.42);
-    hg.addColorStop(0, 'rgba(255,255,255,0.85)'); hg.addColorStop(0.4, 'rgba(255,255,255,0.35)'); hg.addColorStop(1, 'rgba(255,255,255,0)');
+    hg.addColorStop(0, 'rgba(255,255,255,0.95)'); hg.addColorStop(0.28, 'rgba(255,255,255,0.6)'); hg.addColorStop(0.55, 'rgba(255,255,255,0.12)'); hg.addColorStop(1, 'rgba(255,255,255,0)');
     sctx.fillStyle = hg; sctx.beginPath(); sctx.arc(0, 0, R * 0.42, 0, Math.PI * 2); sctx.fill();
     sctx.restore();
+    const gl = sctx.createRadialGradient(cx - R * 0.14, cy - R * 0.64, 0, cx - R * 0.14, cy - R * 0.64, R * 0.07);
+    gl.addColorStop(0, 'rgba(255,255,255,0.95)'); gl.addColorStop(1, 'rgba(255,255,255,0)');
+    sctx.fillStyle = gl; sctx.fillRect(cx - R * 0.3, cy - R * 0.8, R * 0.32, R * 0.32);
 
-    // cracks follow the edges that gave way; the filling shows through
-    sctx.beginPath();
+    // cracks follow the edges that gave way. Bent wax goes white around a crack, and the crack itself
+    // is a groove: shadowed on one lip, lit on the other, with the filling showing at the bottom
+    const cracksPath = new Path2D(), fresh = new Path2D(), nowT = performance.now();
+    let anyFresh = false;
     for (const e of edges) {
       if (!e.cracked || e.t.length < 2) continue;
       if (!tris[e.t[0]].shell || !tris[e.t[1]].shell) continue;
-      sctx.moveTo(pts[e.a].x, pts[e.a].y); sctx.lineTo(pts[e.b].x, pts[e.b].y);
+      const a = pts[e.a], b = pts[e.b];
+      cracksPath.moveTo(a.x, a.y); cracksPath.lineTo(b.x, b.y);
+      if (nowT - e.born < 170) { fresh.moveTo(a.x, a.y); fresh.lineTo(b.x, b.y); anyFresh = true; }
     }
-    sctx.lineCap = 'round'; sctx.lineJoin = 'round'; sctx.lineWidth = 1.8;
-    sctx.strokeStyle = hsl(fl.crack, 0, 0.95); sctx.stroke();
+    sctx.lineCap = 'round'; sctx.lineJoin = 'round';
+    sctx.lineWidth = 6.5; sctx.strokeStyle = 'rgba(255,255,255,0.2)'; sctx.stroke(cracksPath);
+    sctx.save(); sctx.translate(0.9, 1.1); sctx.lineWidth = 1.9; sctx.strokeStyle = 'rgba(0,0,0,0.5)'; sctx.stroke(cracksPath); sctx.restore();
+    sctx.lineWidth = 1.3; sctx.strokeStyle = hsl(fl.crack, 0, 0.95); sctx.stroke(cracksPath);
+    sctx.save(); sctx.translate(-0.7, -0.8); sctx.lineWidth = 1; sctx.strokeStyle = 'rgba(255,255,255,0.7)'; sctx.stroke(cracksPath); sctx.restore();
+    if (anyFresh) { sctx.lineWidth = 4.5; sctx.strokeStyle = 'rgba(255,255,255,0.85)'; sctx.stroke(fresh); }   // a new crack flashes as it opens
 
-    // the broken edge of the shell casts a little shadow on the filling
+    // where the shell has broken away you see its cut edge: a pale lip of wax
     sctx.beginPath();
     for (const e of edges) {
       if (e.t.length < 2) continue;
       if (tris[e.t[0]].shell === tris[e.t[1]].shell) continue;
       sctx.moveTo(pts[e.a].x, pts[e.a].y); sctx.lineTo(pts[e.b].x, pts[e.b].y);
     }
-    sctx.lineWidth = 2.4; sctx.strokeStyle = 'rgba(0,0,0,0.38)'; sctx.stroke();
+    sctx.lineWidth = 3.2; sctx.strokeStyle = hsl(fl.shell, 30, 0.85); sctx.stroke();
     sctx.globalCompositeOperation = 'source-over';
 
     ctx.globalAlpha = coat;
