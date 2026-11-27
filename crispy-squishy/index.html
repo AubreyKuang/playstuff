@@ -357,7 +357,7 @@ summary { cursor: pointer; font-size: 14px; }
   const sellMs = (toy, layers) => (18 + TOY_KEYS.indexOf(toy) * 2 + (layers - 1) * 8) * 1000;
 
   // the toy on the workbench right now
-  const cur = { layers: 1, touched: false, pieces: 0, price: 0 };
+  const cur = { layers: 1, touched: false, pieces: 0, price: 0, tips: 0 };
   let look = { shell: [0, 0, 50], paste: [0, 0, 80], goo: [0, 0, 60], crack: [0, 0, 90], jelly: 0, fizz: false, shellAlpha: 1 };
 
   const P = { brittle: 6, soft: 5, rebound: 1, ooze: 6, finger: 5 };
@@ -724,9 +724,9 @@ summary { cursor: pointer; font-size: 14px; }
     }
     if (cracks) { for (let i = 0; i < Math.min(cracks, 3); i++) crackle(0.5 + cracks / 10); buzz(6); }
     if (flakes) { for (let i = 0; i < Math.min(flakes, 2); i++) snap(); }
-    if (shellCount === 0 && !doneFlag) {                   // squeezed clean: half its shelf price, paid at once
+    if (shellCount === 0 && !doneFlag) {                   // squeezed clean: part of its shelf price, paid at once
       doneFlag = true; cleared++; S.made++; $('recoat').classList.add('ready');
-      earn(Math.round(cur.price * 0.5), cx, cy - R * 0.4);
+      earn(Math.round(cur.price * 0.4), cx, cy - R * 0.4);
     }
   }
 
@@ -758,7 +758,7 @@ summary { cursor: pointer; font-size: 14px; }
     for (const t of piece.tris) for (const ei of t.e) edges[ei].shell = edges[ei].t.some(ti => tris[ti].shell);
     for (const v of verts) pts[v].bare = vTris[v].every(ti => !tris[ti].shell);
     shellCount -= piece.tris.length; flakedTotal++;
-    if (++cur.pieces % 15 === 0) earn(1, mx, my);          // a trickle of beans for the show
+    cur.pieces++;
 
     // the outer edge of the piece (edges that belong to only one of its triangles), for its lit rim
     const uses = new Map();
@@ -809,7 +809,8 @@ summary { cursor: pointer; font-size: 14px; }
     }
     if (blobs.length > 40) blobs.splice(0, blobs.length - 40);
     if (look.fizz) { fizzPop(x, y, s); hiss(); } else squelch(s);
-    buzz(18); earn(1, x, y);
+    buzz(18);
+    if (cur.tips > 0) { cur.tips--; earn(1, x, y); }       // a few tips for the show, capped per toy
   }
 
   // ---------- sound & haptics ----------
@@ -1163,6 +1164,7 @@ summary { cursor: pointer; font-size: 14px; }
 
   function updateActions() {
     cur.price = priceOf(S.toy, S.coat, cur.layers);
+    if (!cur.touched) cur.tips = Math.round(cur.price * 0.25);   // squeezing it yourself pays about two thirds of selling it
     const dip = $('dip'), sell = $('sell');
     dip.textContent = cur.layers >= 3 ? '已裹满 3 层' : `再裹一层（${cur.layers}/3）`;
     dip.disabled = cur.touched || cur.layers >= 3;
