@@ -215,7 +215,7 @@ summary { cursor: pointer; font-size: 14px; }
       deco: g => {
         const d = [];
         for (let i = 0; i < 6; i++) { const [x, y] = g.p(rnd(0, 6.283), rnd(0.15, 0.8)); d.push({ k: 'soft', x, y, r: rnd(0.22, 0.4), c: '255,255,244', a: 0.8 }); }
-        for (let i = 0; i < 3; i++) { const a = rnd(0, 6.283); d.push({ k: 'line', c: 'rgba(255,255,244,0.65)', w: 0.035, pts: [0.75, 0.4, 0.1, -0.3, -0.7].map((k, j) => g.p(a + j * 0.35, Math.abs(k))) }); }
+        for (let i = 0; i < 3; i++) { const a = rnd(0, 6.283); d.push({ k: 'line', c: 'rgba(255,255,244,0.3)', w: 0.09, pts: [0.75, 0.4, 0.1, -0.3, -0.7].map((k, j) => g.p(a + j * 0.35, Math.abs(k))) }); }
         return d;
       } },
     caramel: { name: '焦糖', price: 220, mult: 1.6, shell: [28, 88, 40], crack: [45, 65, 93],
