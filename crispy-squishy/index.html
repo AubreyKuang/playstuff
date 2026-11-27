@@ -4,7 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>脆皮捏捏</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap">
 <style>
 /* Layout: one column. The toy on a square stage is the page; the shop (what you own, what you can
    buy, the shelf, the daily stamp) sits in tabs under it. */
@@ -21,7 +20,7 @@
   --bean: #f2b01e;
   --bean-edge: #b97a00;
   --good: #1f8a5b;
-  --display: "ZCOOL KuaiLe", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
+  --display: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
   --body: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
 }
 @media (prefers-color-scheme: dark) {
@@ -46,18 +45,18 @@ body {
 button { font: inherit; color: inherit; }
 .wrap { max-width: 540px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
 header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-h1 { font-family: var(--display); font-weight: 400; font-size: 30px; line-height: 1.1; margin: 0; letter-spacing: 0.02em; }
+h1 { font-family: var(--display); font-weight: 700; font-size: 26px; line-height: 1.1; margin: 0; letter-spacing: 0.02em; }
 .wallet { display: flex; align-items: center; gap: 8px; }
 .purse { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px 6px 8px; border-radius: 999px; background: var(--panel); border: 1px solid var(--line); font-variant-numeric: tabular-nums; font-weight: 600; }
 .bean { width: 16px; height: 16px; border-radius: 50%; background: var(--bean); box-shadow: inset 0 -2px 0 var(--bean-edge); flex: none; }
 .stage-box { position: relative; background: radial-gradient(ellipse 70% 62% at 50% 44%, var(--stage-hi), var(--stage) 78%); border-radius: 28px; overflow: hidden; }
 canvas#stage { display: block; width: 100%; aspect-ratio: 1 / 1; max-width: 100%; touch-action: none; cursor: grab; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 canvas#stage:active { cursor: grabbing; }
-.hint { position: absolute; left: 0; right: 0; bottom: 16px; text-align: center; pointer-events: none; font-family: var(--display); font-size: 18px; color: var(--muted); }
+.hint { position: absolute; left: 0; right: 0; bottom: 16px; text-align: center; pointer-events: none; font-family: var(--display); font-weight: 600; font-size: 16px; color: var(--muted); }
 .tag { position: absolute; left: 14px; top: 12px; pointer-events: none; font-size: 13px; color: var(--muted); }
 .tag b { color: var(--fg); font-weight: 600; }
 .actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
-.btn { font-family: var(--display); font-size: 16px; padding: 10px 8px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel); cursor: pointer; min-width: 0; }
+.btn { font-family: var(--display); font-weight: 600; font-size: 15px; padding: 10px 8px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel); cursor: pointer; min-width: 0; }
 .btn.primary { background: var(--accent); color: var(--accent-fg); border-color: transparent; }
 .btn:disabled { opacity: 0.45; cursor: default; }
 .btn:focus-visible, .tab:focus-visible, .card:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
@@ -101,6 +100,17 @@ summary { cursor: pointer; font-size: 14px; }
 .knobs input[type="range"] { width: 100%; min-width: 0; accent-color: var(--accent); }
 .knobs output { color: var(--muted); font-variant-numeric: tabular-nums; min-width: 2ch; text-align: right; }
 .note { color: var(--muted); font-size: 12px; margin: 10px 0 0; }
+.adtag { display: inline-block; font-size: 11px; line-height: 1.3; font-weight: 400; border: 1px solid currentColor; border-radius: 4px; padding: 0 3px; margin-right: 4px; opacity: 0.75; vertical-align: 1px; }
+.slot .btn + .btn { margin-top: -2px; }
+.sign-extra { margin-top: 10px; }
+.ad-demo { position: fixed; inset: 0; z-index: 50; background: rgba(8,14,12,0.78); display: flex; align-items: center; justify-content: center; padding: 24px; }
+.ad-card { max-width: 320px; width: 100%; background: var(--panel); color: var(--fg); border-radius: 18px; padding: 20px; display: flex; flex-direction: column; gap: 10px; text-align: center; }
+.ad-card h2 { margin: 0; font-size: 18px; }
+.ad-card p { margin: 0; color: var(--muted); font-size: 13px; }
+.ad-card .count { font-size: 15px; color: var(--fg); font-variant-numeric: tabular-nums; }
+.toast { position: fixed; left: 50%; bottom: calc(28px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 60; background: var(--fg); color: var(--bg); padding: 8px 14px; border-radius: 999px; font-size: 13px; max-width: calc(100% - 32px); text-align: center; }
+.foot { display: flex; flex-direction: column; gap: 8px; }
+.foot details p { margin: 8px 0 0; color: var(--muted); font-size: 13px; }
 </style>
 </head>
 <body>
@@ -154,9 +164,20 @@ summary { cursor: pointer; font-size: 14px; }
     <p class="panel-note">每天来领一次糖豆，连续七天奖励递增，断签从第一天重新算。</p>
     <div class="days" id="g-days"></div>
     <button class="btn primary" id="claim" type="button">领取今天的糖豆</button>
+    <div class="sign-extra"><button class="btn" id="freeAd" type="button"></button></div>
   </section>
 
-  <details>
+  <div class="foot">
+    <label class="sound"><input type="checkbox" id="sound" checked>声音</label>
+    <details>
+      <summary>隐私说明</summary>
+      <p>这个游戏不用注册，也不会向你要姓名、手机号、位置这类个人信息。</p>
+      <p>你的糖豆、解锁的款式和签到记录只保存在这台设备上，清除应用数据或换设备后不会保留。</p>
+      <p>游戏里的广告都由你主动点开，播放由 TapTap 平台提供，广告相关的数据处理以 TapTap 的隐私政策为准。</p>
+    </details>
+  </div>
+
+  <details id="dev" hidden>
     <summary>调手感</summary>
     <div class="knobs">
       <label for="k-brittle">脆度</label><input type="range" id="k-brittle" min="1" max="10" value="6"><output id="o-brittle">6</output>
@@ -166,12 +187,21 @@ summary { cursor: pointer; font-size: 14px; }
       <label for="k-finger">手指大小</label><input type="range" id="k-finger" min="1" max="10" value="5"><output id="o-finger">5</output>
     </div>
     <div class="row" style="margin-top:10px">
-      <label class="sound"><input type="checkbox" id="sound" checked>声音</label>
       <button class="btn" id="reset" type="button" style="font-size:13px;padding:6px 10px">清空存档</button>
     </div>
     <p class="note">内馅回弹 1 是粘土，捏成什么样就留成什么样；调高会越来越像 Q 弹的果冻。布丁和气泡水自带回弹。手机上可以两根手指一起捏。</p>
   </details>
 </div>
+
+<div class="ad-demo" id="adDemo" hidden>
+  <div class="ad-card" role="dialog" aria-labelledby="adTitle">
+    <h2 id="adTitle">广告</h2>
+    <p>试玩版还没有接入真实广告。上架后，这里播放的是 TapTap 提供的激励视频。</p>
+    <p class="count" id="adText"></p>
+    <button class="btn primary" id="adClose" type="button">关闭</button>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
 
 <script>
 (() => {
@@ -343,12 +373,12 @@ summary { cursor: pointer; font-size: 14px; }
   const LAYER_MULT = [1, 1.5, 2];                        // each extra dip makes the toy worth more
   const SHELF_SLOTS = 3;
   const SAVE_KEY = 'crispy-shop-v1';
-  const fresh = () => ({ coins: 30, toys: ['egg', 'block', 'berry'], coats: ['plain', 'milk'], shelf: [], sign: { last: '', streak: 0 }, toy: 'block', coat: 'plain', made: 0 });
+  const fresh = () => ({ coins: 30, toys: ['egg', 'block', 'berry'], coats: ['plain', 'milk'], shelf: [], sign: { last: '', streak: 0 }, ads: { day: '', free: 0 }, toy: 'block', coat: 'plain', made: 0 });
   let S = fresh();
   try {
     const saved = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
     if (saved && typeof saved === 'object') {
-      S = { ...S, ...saved, sign: { ...S.sign, ...(saved.sign || {}) } };
+      S = { ...S, ...saved, sign: { ...S.sign, ...(saved.sign || {}) }, ads: { ...S.ads, ...(saved.ads || {}) } };
       S.toys = S.toys.filter(k => TOYS[k]); S.coats = S.coats.filter(k => COATS[k]);
       S.shelf = (S.shelf || []).filter(it => TOYS[it.toy] && COATS[it.coat]);
       if (!TOYS[S.toy]) S.toy = 'block';
@@ -887,7 +917,7 @@ summary { cursor: pointer; font-size: 14px; }
         c.fillStyle = g; c.fillRect(q.x - r, q.y - r, r * 2, r * 2);
       } else if (d.k === 'text') {
         const q = at(d.an);
-        c.font = `${Math.round(d.size * unit)}px "ZCOOL KuaiLe", "PingFang SC", sans-serif`;
+        c.font = `800 ${Math.round(d.size * unit)}px "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif`;
         c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = d.c; c.fillText(d.text, q.x, q.y);
       } else {
         c.beginPath();
@@ -1009,7 +1039,7 @@ summary { cursor: pointer; font-size: 14px; }
     ctx.globalAlpha = 1;
 
     // sugar beans earned, drifting up
-    ctx.font = '18px "ZCOOL KuaiLe", "PingFang SC", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = '700 18px "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     for (const f of floats) {
       ctx.globalAlpha = Math.min(1, f.life * 2);
       ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(60,35,0,0.75)'; ctx.strokeText(f.text, f.x, f.y);
@@ -1158,6 +1188,60 @@ summary { cursor: pointer; font-size: 14px; }
     if (pops.length > 160) pops.splice(0, pops.length - 160);
   }
 
+  // ---------- rewarded ads ----------
+  // Every ad is opened by the player and pays out only if it was watched to the end. Inside TapTap this
+  // uses the platform's rewarded video; anywhere else (this web build) a clearly marked stand-in plays.
+  const AD_UNIT_ID = '';             // paste the ad unit id from 开发者中心 → 小游戏广告 once ads are opened
+  const FREE_AD_CAP = 5, FREE_AD_BEANS = 20;
+  const Ads = (() => {
+    let ad = null, pending = null;
+    const real = () => !!AD_UNIT_ID && typeof tap !== 'undefined' && tap && typeof tap.createRewardedVideoAd === 'function';
+    function show(done) {            // done(true) watched to the end, done(false) closed early, done(null) no ad to show
+      if (!real()) return standIn(done);
+      if (!ad) {
+        ad = tap.createRewardedVideoAd({ adUnitId: AD_UNIT_ID });
+        ad.onClose(res => { const cb = pending; pending = null; if (cb) cb(!!(res && res.isEnded)); });
+        ad.onError(() => {});
+      }
+      pending = done;
+      ad.show().catch(() => ad.load().then(() => ad.show()).catch(() => { pending = null; done(null); }));
+    }
+    function standIn(done) {
+      const box = $('adDemo'), txt = $('adText'), close = $('adClose');
+      let left = 3, finished = false;
+      const tick = () => {
+        txt.textContent = finished ? '播放结束' : `这里会播放一段广告，还有 ${left} 秒`;
+        close.textContent = finished ? '关闭并领取奖励' : '提前关闭（拿不到奖励）';
+      };
+      box.hidden = false; tick();
+      const timer = setInterval(() => { if (--left <= 0) { finished = true; clearInterval(timer); } tick(); }, 1000);
+      close.onclick = () => { clearInterval(timer); box.hidden = true; done(finished); };
+    }
+    return { show };
+  })();
+  let toastTimer = 0;
+  function toast(msg) {
+    const t = $('toast');
+    t.textContent = msg; t.hidden = false;
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, 2000);
+  }
+  function watchAd(reward) {
+    initAudio();
+    Ads.show(res => {
+      if (res === null) toast('暂时没有广告，请稍后再试');
+      else if (!res) toast('看完整段广告才有奖励');
+      else reward();
+    });
+  }
+  function adButton(label, onClick) {
+    const b = document.createElement('button'), tag = document.createElement('span');
+    b.type = 'button'; b.className = 'btn';
+    tag.className = 'adtag'; tag.textContent = '广告';
+    b.append(tag, label);
+    b.addEventListener('click', onClick);
+    return b;
+  }
+
   // ---------- the shop: beans, dipping, shelf, unlocks, daily stamp ----------
   function earn(n, x, y) {
     if (!n) return;
@@ -1242,14 +1326,15 @@ summary { cursor: pointer; font-size: 14px; }
         sw.style.background = `linear-gradient(135deg, ${hsl(dipped ? COATS[it.coat].shell : TOYS[it.toy].shell)} 0 52%, ${hsl(TOYS[it.toy].paste)} 52% 100%)`;
         const name = document.createElement('span'); name.textContent = `${COATS[it.coat].name}${TOYS[it.toy].name} · ${it.layers} 层`;
         slot.append(sw, name);
+        const take = n => { const i = S.shelf.indexOf(it); if (i < 0) return; S.shelf.splice(i, 1); earn(n); renderShelf(); updateActions(); };
         if (now >= it.readyAt) {
           ready++;
           const b = document.createElement('button'); b.type = 'button'; b.className = 'btn primary'; b.textContent = `收钱 +${it.price}`;
-          b.addEventListener('click', () => { S.shelf.splice(S.shelf.indexOf(it), 1); earn(it.price); renderShelf(); updateActions(); });
-          slot.appendChild(b);
+          b.addEventListener('click', () => take(it.price));
+          slot.append(b, adButton(`双倍 +${it.price * 2}`, () => watchAd(() => take(it.price * 2))));
         } else {
           const wait = document.createElement('span'); wait.textContent = `等客人 ${Math.ceil((it.readyAt - now) / 1000)} 秒`;
-          slot.appendChild(wait);
+          slot.append(wait, adButton('马上卖出', () => watchAd(() => { it.readyAt = Date.now(); save(); renderShelf(); })));
         }
       }
       box.appendChild(slot);
@@ -1281,7 +1366,17 @@ summary { cursor: pointer; font-size: 14px; }
     $('claim').textContent = st.done ? '今天已领，明天再来' : `领取今天的 ${next} 糖豆`;
     $('pip-sign').hidden = st.done;
     $('signBtn').textContent = st.done ? '已签到' : '签到';
+    if (S.ads.day !== st.today) { S.ads.day = st.today; S.ads.free = 0; }
+    const leftAds = FREE_AD_CAP - S.ads.free, fb = $('freeAd');
+    fb.textContent = '';
+    const tag = document.createElement('span'); tag.className = 'adtag'; tag.textContent = '广告';
+    fb.append(tag, leftAds > 0 ? `看一段广告领 ${FREE_AD_BEANS} 糖豆（今天还剩 ${leftAds} 次）` : '今天的次数用完了，明天再来');
+    fb.disabled = leftAds <= 0;
   }
+  $('freeAd').addEventListener('click', () => {
+    if (S.ads.free >= FREE_AD_CAP) return;
+    watchAd(() => { S.ads.free++; earn(FREE_AD_BEANS); renderSign(); });
+  });
   $('claim').addEventListener('click', () => {
     const st = signState();
     if (st.done) return;
@@ -1298,7 +1393,7 @@ summary { cursor: pointer; font-size: 14px; }
   }
   for (const t of document.querySelectorAll('.tab')) t.addEventListener('click', () => showTab(t.dataset.tab));
   $('signBtn').addEventListener('click', () => showTab('sign'));
-  setInterval(renderShelf, 1000);
+  setInterval(() => { if ($('adDemo').hidden && !$('p-shelf').hidden) renderShelf(); else if ($('adDemo').hidden) $('pip-shelf').hidden = !S.shelf.some(it => Date.now() >= it.readyAt); }, 1000);
 
   $('reset').addEventListener('click', () => {
     try { localStorage.removeItem(SAVE_KEY); } catch (_) {}
@@ -1338,6 +1433,7 @@ summary { cursor: pointer; font-size: 14px; }
   $('sound').addEventListener('change', ev => { soundOn = ev.target.checked; });
   soundOn = $('sound').checked;
 
+  if (/[?&]dev\b/.test(location.search)) $('dev').hidden = false;   // tuning sliders and save reset are for development only
   $('coins').textContent = S.coins;
   renderCards(); renderShelf(); renderSign();
   if (window.ResizeObserver) new ResizeObserver(resize).observe(cv); else window.addEventListener('resize', resize);
