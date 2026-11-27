@@ -255,7 +255,7 @@ summary { cursor: pointer; font-size: 14px; }
     popsicle: { name: '脆皮雪糕', price: 160, smooth: 1, shell: [20, 55, 26], paste: [48, 85, 92], goo: [48, 75, 96], crack: [45, 70, 90],
       shape: () => [rrect(1.04, 1.5, 0.44, 0, -0.2), [[-0.15, 0.4], [0.15, 0.4], [0.15, 1.0], [-0.15, 1.0]]],
       deco: () => {
-        const d = [{ k: 'poly', c: 'hsl(35, 55%, 72%)', pts: [[-0.3, 0.57], [0.3, 0.57], [0.3, 1.1], [-0.3, 1.1]] }, { k: 'line', c: 'rgba(120,80,40,0.35)', w: 0.012, pts: [[0, 0.62], [0, 0.95]] }];
+        const d = [{ k: 'poly', keep: true, c: 'hsl(35, 55%, 72%)', pts: [[-0.3, 0.57], [0.3, 0.57], [0.3, 1.1], [-0.3, 1.1]] }, { k: 'line', c: 'rgba(120,80,40,0.35)', w: 0.012, pts: [[0, 0.62], [0, 0.95]] }];
         for (let i = 0; i < 16; i++) d.push({ k: 'dot', x: rnd(-0.38, 0.38), y: rnd(-0.8, 0.4), rx: rnd(0.025, 0.05), ry: rnd(0.02, 0.035), rot: rnd(0, 3), c: 'rgba(215,165,100,0.9)' });
         return d;
       } },
@@ -297,7 +297,7 @@ summary { cursor: pointer; font-size: 14px; }
     onigiri: { name: '饭团', price: 480, shell: [50, 28, 96], paste: [50, 28, 92], goo: [8, 82, 62], crack: [35, 20, 58],
       shape: () => [param(t => { const r = 0.78 + 0.13 * Math.cos(3 * (t + Math.PI / 2)); return [r * Math.cos(t), r * Math.sin(t) + 0.08]; })],
       deco: () => {
-        const d = [{ k: 'poly', c: 'hsl(140, 25%, 13%)', pts: [[-0.3, 0.14], [0.3, 0.14], [0.36, 0.78], [-0.36, 0.78]] }];
+        const d = [{ k: 'poly', keep: true, c: 'hsl(140, 25%, 13%)', pts: [[-0.3, 0.14], [0.3, 0.14], [0.36, 0.78], [-0.36, 0.78]] }];
         for (let i = 0; i < 14; i++) { const x = rnd(-0.45, 0.45), y = rnd(-0.55, 0.05), a = rnd(0, 3); d.push({ k: 'line', c: 'rgba(170,160,140,0.45)', w: 0.014, pts: [[x, y], [x + Math.cos(a) * 0.07, y + Math.sin(a) * 0.07]] }); }
         return d;
       } },
@@ -485,7 +485,9 @@ summary { cursor: pointer; font-size: 14px; }
     };
     const pin = (x, y) => anchor(cx + x * unit, cy + y * unit);
     const pinAll = list => list.map(d => (d.k === 'line' || d.k === 'poly') ? { ...d, ans: d.pts.map(([x, y]) => pin(x, y)) } : { ...d, an: pin(d.x, d.y) });
-    decals = pinAll((dipped ? coating.deco(g) : []).concat(toy.deco(g)));
+    // a dipped coating hides the food's own colouring; only its fine detail (lines, lettering, small marks) and anything that sticks out shows through
+    const own = toy.deco(g);
+    decals = pinAll(dipped ? coating.deco(g).concat(own.filter(d => d.keep || d.k === 'line' || d.k === 'text' || d.k === 'dot')) : own);
     innerDecals = pinAll(toy.inner ? toy.inner(g) : []);
     bubbles = [];
     if (look.fizz) for (let i = 0; i < 30; i++) bubbles.push({ x: cx + rnd(-R, R), y: cy + rnd(-R, R), r: rnd(1.5, 5), v: rnd(0.3, 1.1) });
